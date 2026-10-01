@@ -8,7 +8,7 @@ export const itemsMock: Item[] = [
         description:
         "Morral azul oscuro con un llavero de planeta y un bolsillo frontal con cierre.",
         category: "Accesorios",
-        location: "Cafetería Central",
+        location: "Cafetería central",
         imageUrl: "/mocks/backpack.jpg",
         publishedAt: "2026-06-12T12:08:00-05:00",
     },
