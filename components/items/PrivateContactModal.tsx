@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Modal from "@/components/ui/Modal";
+import Modal from "@/components/ui/BaseModal";
 import { IconClose } from "@/components/ui/icons";
-import { contactPublisher } from "@/lib/contact";
-import { formatPhone } from "@/lib/format";
+import { contactPublisher } from "@/lib/contact-links";
+import { formatPhone } from "@/lib/item-format";
 import { ITEM_TEXTS } from "@/lib/item-texts";
 import { getPrivateContact } from "@/services/items.service";
 import type { Item, PrivateContact } from "@/types/item";

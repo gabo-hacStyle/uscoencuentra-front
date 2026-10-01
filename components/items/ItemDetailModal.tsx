@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import Modal from "@/components/ui/Modal";
+import Modal from "@/components/ui/BaseModal";
 import { IconClose, IconHelp, IconLock, IconPin } from "@/components/ui/icons";
-import { formatPublishedDate } from "@/lib/format";
+import { formatPublishedDate } from "@/lib/item-format";
 import { ITEM_TEXTS } from "@/lib/item-texts";
 import type { Item } from "@/types/item";
 

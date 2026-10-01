@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import ContactFlow from "@/components/items/ContactFlow";
+import ContactFlow from "@/components/items/ItemContactFlow";
 import { ITEM_TEXTS } from "@/lib/item-texts";
 import type { Item } from "@/types/item";
 
