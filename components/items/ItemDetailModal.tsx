@@ -31,6 +31,7 @@ export default function ItemDetailModal({ item, onClose, onContact }: ItemDetail
                 src={item.imageUrl}
                 alt={item.title}
                 fill
+                unoptimized={item.imageUrl.startsWith("data:")}
                 sizes="(min-width: 768px) 28rem, 92vw"
                 className="object-cover"
             />

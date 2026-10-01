@@ -24,6 +24,7 @@ export default function ItemsDemo({ items }: { items: Item[] }) {
                     src={item.imageUrl}
                     alt={item.title}
                     fill
+                    unoptimized={item.imageUrl.startsWith("data:")}
                     sizes="(min-width: 1024px) 20rem, (min-width: 640px) 50vw, 100vw"
                     className="object-cover"
                     />

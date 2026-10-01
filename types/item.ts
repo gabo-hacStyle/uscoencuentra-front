@@ -8,7 +8,7 @@ export interface Item {
     description: string;
     category: string;
     location: string;
-    imageUrl: string;
+    imageUrl: string; // image URL or a data URI ("data:image/jpeg;base64,...")
     publishedAt: string; // ISO 8601; the frontend formats it for display
 }
 
