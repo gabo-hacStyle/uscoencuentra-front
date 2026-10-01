@@ -1,18 +1,19 @@
-export type TipoReporte = "perdido" | "encontrado";
+// "lost": published by the owner. "found": published by the person who found it.
+export type ItemType = "lost" | "found";
 
-export interface Objeto {
+export interface Item {
     id: string;
-    tipo: TipoReporte;
-    titulo: string;
-    descripcion: string;
-    categoria: string;
-    ubicacion: string;
-    imagenUrl: string;
-    publicadoEn: string; // ISO 8601; el frontend lo formatea ("12 jun, 12:08 p. m.")
+    type: ItemType;
+    title: string;
+    description: string;
+    category: string;
+    location: string;
+    imageUrl: string;
+    publishedAt: string; // ISO 8601; the frontend formats it for display
 }
 
-export interface ContactoPrivado {
-    publicadoPor: string;        // ya enmascarado por el backend
-    whatsapp: string | null;     // "+573105554821"
-    correo: string;
+export interface PrivateContact {
+    publishedBy: string;     // already masked by the backend, e.g. "A*** M******"
+    whatsapp: string | null; // E.164 format, e.g. "+573105554821"
+    email: string;
 }

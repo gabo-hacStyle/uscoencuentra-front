@@ -1,14 +1,14 @@
-import { contactoMock, objetosMock } from "@/mocks/objetos.mock";
-import type { ContactoPrivado } from "@/types/objeto";
+import { contactMock, itemsMock } from "@/mocks/items.mock";
+import type { PrivateContact } from "@/types/item";
 
-export async function obtenerContacto(idObjeto: string): Promise<ContactoPrivado> {
-    // TODO(backend): reemplazar por fetch(`/api/objetos/${idObjeto}/contacto`)
-    await new Promise((r) => setTimeout(r, 400)); // simula la espera de red
+export async function getPrivateContact(itemId: string): Promise<PrivateContact> {
+  // TODO(backend): replace with fetch(`/api/items/${itemId}/contact`)
+    await new Promise((resolve) => setTimeout(resolve, 400)); // simulates network delay
 
-    const existe = objetosMock.some((objeto) => objeto.id === idObjeto);
-    if (!existe) {
-        throw new Error("Objeto no encontrado"); // simula el 404 del backend
+    const exists = itemsMock.some((item) => item.id === itemId);
+    if (!exists) {
+        throw new Error("Item not found"); // simulates the backend 404
     }
 
-    return contactoMock;
+    return contactMock;
 }
