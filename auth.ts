@@ -1,6 +1,14 @@
 import NextAuth from "next-auth";
 import type { Account } from "next-auth";
 import Google from "next-auth/providers/google";
+// Utilidades de roles
+import {
+  PROTECTED_ROUTES,
+  ROLE_HOME,
+  forbiddenPath,
+  isUnder,
+  normalizeRole,
+} from "@/lib/roles";
 import {
   BackendAuthError,
   exchangeGoogleIdToken,
@@ -64,15 +72,23 @@ export const { handlers, auth } = NextAuth({
     async session({ session, token }) {
        session.accessToken =
         typeof token.accessToken === "string" ? token.accessToken : undefined;
-      session.user.role =
-        typeof token.role === "string" ? token.role : undefined;
+      session.user.role = normalizeRole(token.role);
       return session;
     },
 
-    // Lo usa proxy.ts: ¿este usuario puede entrar a esta ruta?
+    // Lo usa proxy.ts: controla qué rol puede entar a cada ruta
     authorized({ auth: session, request: { nextUrl } }) {
-      if (nextUrl.pathname.startsWith("/dashboard")) return !!session?.user;
-      return true; // false => redirige a /login
+      const path = nextUrl.pathname;
+      if (!PROTECTED_ROUTES.some((base) => isUnder(path, base))) return true;
+      if (!session?.user) return false; // sin sesión → /login
+
+      // Cada rol solo entra a SU zona; si pide la del otro, lo mandamos a su inicio.
+      const { role } = session.user;
+      const otherRole = role === "ADMIN" ? "USER" : "ADMIN";
+      if (isUnder(path, ROLE_HOME[otherRole])) {
+        return Response.redirect(new URL(forbiddenPath(role), nextUrl));
+      }
+      return true;
     },
   },
 });
