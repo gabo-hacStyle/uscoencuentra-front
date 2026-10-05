@@ -1,55 +1,48 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import ExploreSection from "@/components/items/ExploreSection";
-import HeroSection, { HERO_SEARCH_ID } from "@/components/items/HeroSection";
-import RecentReports from "@/components/items/RecentReports";
-import Footer from "@/components/layout/Footer";
-import Navbar from "@/components/layout/Navbar";
-import { parseFilters } from "@/lib/filter-items";
 import { auth } from "@/auth";
-import { getCategorySummaries, getItems } from "@/services/items.service";
+import { BrandLogo } from "@/components/brand/BrandLogo";
+import { SignOutButton } from "@/components/auth/SignOutButton";
+import { isMockBackendEnabled } from "@/services/auth.service";
 
-interface DashboardPageProps {
-  // In Next.js 16 searchParams is a Promise
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}
-
-export default async function DashboardPage({ searchParams }: DashboardPageProps) {
-  // Second barrier: proxy.ts already protects this route, the page also verifies
-  const session = await auth(); 
+export default async function DashboardPage() {
+  // Segunda barrera: aunque proxy.ts ya protege esta ruta, la página también verifica.
+  const session = await auth();
   if (!session?.user) redirect("/login");
 
-  // The URL is the single source of truth for the filters (q, type, category, sort)
-  const filters = parseFilters(await searchParams);
-
-  // Both requests run in parallel. Later they will hit the real backend.
-  const [categories, items] = await Promise.all([
-    getCategorySummaries(),
-    getItems(filters),
-  ]);
+  const fields = [
+    { label: "Nombre", value: session.user.name },
+    { label: "Correo", value: session.user.email },
+    { label: "Rol", value: session.user.role },
+  ];
 
   return (
-    // min-h-screen + flex-1 on <main> pushes the footer to the bottom on short pages
-    <div className="flex min-h-screen flex-col">
-      {/* The navbar search stays hidden while the hero search is visible */}
-      <Navbar heroSearchId={HERO_SEARCH_ID} />
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-4 py-10">
+      <section className="rounded-[2rem] border border-usco-line bg-white p-8 shadow-[0_24px_60px_-20px_rgba(90,30,30,0.25)] sm:p-10">
+        <BrandLogo />
+        <h1 className="mt-10 text-4xl font-bold text-usco-ink">Bienvenido</h1>
+        <p className="mt-2 text-usco-muted">Sesión autenticada correctamente.</p>
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 md:px-6">
-        {/* Suspense is required because HeroSection reads the URL query on the client */}
-        <Suspense fallback={null}>
-          <HeroSection />
-        </Suspense>
+        {isMockBackendEnabled() && (
+          <p className="mt-4 rounded-xl bg-usco-sand px-4 py-2 text-sm text-usco-ink">
+            Modo dummy activo: nombre, correo y rol NO vienen del backend real.
+          </p>
+        )}
 
-        <div className="mt-10">
-          <ExploreSection categories={categories} />
+        <dl className="mt-8 grid gap-4 rounded-2xl bg-usco-sand p-6 sm:grid-cols-3">
+          {fields.map(({ label, value }) => (
+            <div key={label}>
+              <dt className="text-sm text-usco-muted">{label}</dt>
+              <dd className="mt-1 break-words font-semibold text-usco-ink">
+                {value ?? "No disponible"}
+              </dd>
+            </div>
+          ))}
+        </dl>
+
+        <div className="mt-8">
+          <SignOutButton />
         </div>
-
-        <div className="mt-12">
-          <RecentReports items={items} filters={filters} />
-        </div>
-      </main>
-
-      <Footer />
-    </div>
+      </section>
+    </main>
   );
 }
