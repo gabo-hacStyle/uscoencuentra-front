@@ -10,10 +10,6 @@
   --color-usco-ink: #2d1a1a;        /* texto principal */
   --color-usco-muted: #6b5555;      /* texto secundario */
   --color-usco-line: #eadfd0;       /* bordes suaves */
-    --color-usco-gold: #e5a82b;       /* "Buscar" button, "Perdido" badge */
-  --color-usco-gold-dark: #c98f1c;  /* gold hover */
-  --color-usco-rose: #cf9ea4;       /* soft pink for the hero's second headline line */
-  --color-usco-paper: #f6f0e8;      /* background of the search inputs */
 
   --font-sans: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
 }
