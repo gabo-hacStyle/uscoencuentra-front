@@ -11,12 +11,26 @@ interface ItemImageProps {
     className?: string; // classes for the <Image> (e.g. hover effects)
 }
 
+// Only real URLs are valid: a local path ("/mocks/x.jpg") or an absolute http(s) URL.
+// null, "", "null" and data URIs (base64) are treated as "no image".
+function isUrlSrc(src: string | null): src is string {
+    if (!src) return false;
+    if (src.startsWith("//")) return false; // protocol-relative URLs are not accepted
+    if (src.startsWith("/")) return true;
+    try {
+        const { protocol } = new URL(src);
+        return protocol === "http:" || protocol === "https:";
+    } catch {
+        return false;
+    }
+}
+
 // Fills its parent, which must be "relative" and have a size.
 // Shows a placeholder when there is no image or when it fails to load.
 export default function ItemImage({ src, alt, sizes, className = "" }: ItemImageProps) {
     const [failed, setFailed] = useState(false);
 
-    if (!src || failed) {
+    if (!isUrlSrc(src) || failed) {
         return (
         <div
             role="img"
@@ -34,7 +48,6 @@ export default function ItemImage({ src, alt, sizes, className = "" }: ItemImage
         src={src}
         alt={alt}
         fill
-        unoptimized={src.startsWith("data:")}
         sizes={sizes}
         onError={() => setFailed(true)}
         className={`object-cover ${className}`}
