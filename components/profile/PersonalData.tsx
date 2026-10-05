@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Alert } from "@/components/profile/Alert";
 import { EditProfileModal } from "@/components/profile/EditProfileModal";
-import { formatPhone } from "@/lib/phone";
+import { formatPhone } from "@/lib/item-format";
 
 type PersonalDataProps = {
   name: string;

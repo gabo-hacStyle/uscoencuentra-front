@@ -9,7 +9,7 @@ type GoogleSignInButtonProps = {
   callbackUrl?: string;
 };
 
-export function GoogleSignInButton({ callbackUrl = "/dashboard" }: GoogleSignInButtonProps) {
+export function GoogleSignInButton({ callbackUrl = "/login" }: GoogleSignInButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   // Tope de 5 s: si el usuario no avanza, el botón vuelve a la normalidad.

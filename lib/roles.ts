@@ -1,13 +1,13 @@
 import type { UserRole } from "@/types/auth";
 
-/** Perfil de cada rol. También es el prefijo de URL exclusivo de ese rol. */
+/** Pantalla de cada rol. También es el prefijo de URL exclusivo de ese rol. */
 export const ROLE_HOME: Record<UserRole, string> = {
   USER: "/user",
   ADMIN: "/admin",
 };
 
 /** Rutas privadas. Debe coincidir con el matcher de proxy.ts. */
-export const PROTECTED_ROUTES = ["/dashboard", "/user", "/admin"] as const;
+export const PROTECTED_ROUTES = ["/user", "/admin"] as const;
 
 export function isUnder(pathname: string, base: string): boolean {
   return pathname === base || pathname.startsWith(`${base}/`);

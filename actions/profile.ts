@@ -1,7 +1,7 @@
 "use server"; // esta función se ejecuta en el SERVIDOR aunque el modal (navegador) la llame
 
 import { auth } from "@/auth";
-import { validateColombianPhone } from "@/lib/phone";
+import { isColombianMobileE164 } from "@/lib/phone";
 import { ProfileApiError, updatePhone } from "@/services/profile.service";
 import type { PhoneUpdateResult } from "@/types/profile";
 
@@ -12,14 +12,16 @@ export async function updatePhoneAction(rawNumero: string): Promise<PhoneUpdateR
     return { ok: false, field: "form", error: "Tu sesión no es válida. Cierra sesión e ingresa de nuevo." };
   }
 
-  // Misma validación que en el navegador: el cliente nunca es la autoridad.
-  const check = validateColombianPhone(String(rawNumero));
-  if (!check.ok) return { ok: false, field: "numero", error: check.error };
+  // El modal ya normalizó a E.164; aquí se vuelve a comprobar: el cliente nunca es la autoridad.
+  const numero = String(rawNumero).trim();
+  if (!isColombianMobileE164(numero)) {
+    return { ok: false, field: "numero", error: "El número no tiene un formato válido. Revísalo e inténtalo de nuevo." };
+  }
 
   try {
     const updated = await updatePhone(
       { accessToken: session.accessToken, email: session.user.email },
-      check.value,
+      numero,
     );
     return { ok: true, numero: updated.numero };
   } catch (error) {

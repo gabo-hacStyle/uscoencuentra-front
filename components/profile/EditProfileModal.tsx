@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type SubmitEvent } from "react";
 import { updatePhoneAction } from "@/actions/profile";
 import { Alert } from "@/components/profile/Alert";
-import { formatPhone, validateColombianPhone } from "@/lib/phone";
+import { toNationalDigits, validateColombianPhone } from "@/lib/phone";
 
 type EditProfileModalProps = {
   name: string;
@@ -19,7 +19,8 @@ const FOCUS =
 
 export function EditProfileModal({ name, email, role, numero, onClose, onSaved }: EditProfileModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [value, setValue] = useState(numero ? formatPhone(numero) : "");
+  //muestra el número NACIONAL; el +57 no se escribe (se agrega al enviar).
+  const [value, setValue] = useState(numero ? toNationalDigits(numero) : "");
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -125,7 +126,7 @@ export function EditProfileModal({ name, email, role, numero, onClose, onSaved }
             <p id="numero-error" className="mt-2 text-sm text-red-700">{fieldError}</p>
           ) : (
             <p id="numero-help" className="mt-2 text-sm text-usco-muted">
-              10 dígitos, sin el prefijo +57. Ejemplo: 312 456 7890.
+              Escribe 10 dígitos, sin +57. Ejemplo: 312 456 7890.
             </p>
           )}
         </div>

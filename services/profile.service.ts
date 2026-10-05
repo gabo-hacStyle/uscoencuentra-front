@@ -1,3 +1,4 @@
+import { isE164 } from "@/lib/phone";
 import { API_URL, isMockBackendEnabled } from "@/services/auth.service";
 import type { ProfileResponse, UpdateProfileRequest } from "@/types/profile";
 
@@ -28,8 +29,15 @@ function parseProfile(data: unknown): ProfileResponse | null {
   if (typeof data !== "object" || data === null) return null;
   const d = data as Record<string, unknown>;
   if (d.numero != null && typeof d.numero !== "string") return null;
+
+  const numero = typeof d.numero === "string" && d.numero.trim() !== "" ? d.numero.trim() : null;
+  if (numero !== null && !isE164(numero)) {
+    // BACKEND: debe responder siempre en E.164. No se imprime el valor (es un dato personal).
+    console.warn('[profile] El backend devolvió "numero" fuera de formato E.164 (+57XXXXXXXXXX).');
+  }
+
   return {
-    numero: typeof d.numero === "string" && d.numero.trim() !== "" ? d.numero.trim() : null,
+    numero,
     image: typeof d.image === "string" && d.image !== "" ? d.image : null,
   };
 }
