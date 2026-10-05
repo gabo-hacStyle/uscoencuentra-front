@@ -150,3 +150,20 @@ export function IconImage({ className }: IconProps) {
         </svg>
     );
 }
+
+export function IconCamera({ className }: IconProps) {
+    return (
+        <svg {...svgProps} className={className}>
+        <path d="M4 8h3l2-3h6l2 3h3v11H4V8Z" />
+        <circle cx="12" cy="13" r="3.5" />
+        </svg>
+    );
+}
+
+export function IconCheck({ className }: IconProps) {
+    return (
+        <svg {...svgProps} className={className}>
+        <path d="m5 12 5 5 9-10" />
+        </svg>
+    );
+}

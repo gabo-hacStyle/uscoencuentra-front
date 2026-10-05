@@ -26,3 +26,14 @@ export interface CategorySummary {
     category: ItemCategory;
     count: number; // number of publications in that category
 }
+
+// What the report form sends to the backend (multipart/form-data)
+export interface CreateItemInput {
+    type: ItemType;
+    title: string;
+    category: ItemCategory;
+    description: string;
+    location: string;
+    eventDate: string; // YYYY-MM-DD: when it was lost or found
+    image: File | null; // optional; the backend stores it and returns the public URL
+}
