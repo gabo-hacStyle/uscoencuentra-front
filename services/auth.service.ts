@@ -1,8 +1,7 @@
 import type { BackendAuthResponse, GoogleLoginRequest } from "@/types/auth";
 
 // TODO: reemplazar por URL real del backend (se define en .env.local).
-const API_URL = process.env.API_URL ?? "http://localhost:8080";
-// TODO: confirmar con backend que la ruta definitiva sea /auth/google.
+export const API_URL = process.env.API_URL ?? "http://localhost:8080";
 const GOOGLE_LOGIN_PATH = "/auth/google";
 
 export type BackendAuthErrorCode =
@@ -51,14 +50,14 @@ export async function exchangeGoogleIdToken(
   idToken: string,
 ): Promise<BackendAuthResponse> {
   if (isMockBackendEnabled()) {
-    // DUMMY: respuesta inventada. El login con Google sí es real; esto reemplaza al backend(por el momento).
+    // DUMMY: respuesta inventada. Reemplaza al backend(por el momento).
     return {
       accessToken: "dummy-access-token",
       refreshToken: "dummy-refresh-token",
       user: {
         name: "Usuario de prueba (dummy)",
         email: "dummy@usco.edu.co",
-        role: "DUMMY_ROLE",
+        role: process.env.MOCK_ROLE ?? "USER", // "USER" o "ADMIN"; solo con MOCK_BACKEND=true
       },
     };
   }
