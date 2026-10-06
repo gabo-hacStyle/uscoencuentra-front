@@ -1,5 +1,7 @@
 // Contrato con el backend Spring Boot (POST /auth/google).
-// TODO: confirmar con backend los nombres exactos de campos (¿hay más? ¿id de usuario, expiresIn?).
+
+//Tipo de rol que entiende el fronted
+export type UserRole = "USER" | "ADMIN";
 
 /** Cuerpo que ENVIAMOS al backend. */
 export interface GoogleLoginRequest {
@@ -10,7 +12,7 @@ export interface GoogleLoginRequest {
 export interface BackendUser {
   name: string;
   email: string;
-  role: string; // TODO: confirmar valores posibles con backend (ej. "STUDENT", "ADMIN")
+  role: string; // valor del backend; se convierte a UserRole con normalizeRole()
 }
 
 /** Respuesta que DEVUELVE el backend. */
