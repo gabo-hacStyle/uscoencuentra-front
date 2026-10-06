@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import ItemImage from "@/components/items/ItemImage";
 import Modal from "@/components/ui/BaseModal";
 import { IconClose, IconHelp, IconLock, IconPin } from "@/components/ui/icons";
 import { formatPublishedDate } from "@/lib/item-format";
@@ -27,13 +27,10 @@ export default function ItemDetailModal({ item, onClose, onContact }: ItemDetail
         >
         <div className="grid max-h-[90vh] overflow-y-auto md:grid-cols-2">
             <div className="relative h-56 md:h-auto md:min-h-128">
-            <Image
-                src={item.imageUrl}
-                alt={item.title}
-                fill
-                unoptimized={item.imageUrl.startsWith("data:")}
-                sizes="(min-width: 768px) 28rem, 92vw"
-                className="object-cover"
+            <ItemImage
+            src={item.imageUrl}
+            alt={item.title}
+            sizes="(min-width: 768px) 28rem, 92vw"
             />
             </div>
 
