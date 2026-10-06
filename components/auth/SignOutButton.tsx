@@ -6,8 +6,9 @@ export function SignOutButton() {
   return (
     <button
       type="button"
-      onClick={() => signOut({ callbackUrl: "/login" })}
-      className="rounded-2xl border border-usco-wine px-5 py-3 text-sm font-semibold text-usco-wine transition hover:bg-usco-sand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-usco-wine"
+      role="menuitem"
+      onClick={() => signOut({ redirectTo: "/login" })}
+      className="block w-full rounded-xl px-4 py-2.5 text-left text-sm font-medium text-usco-wine transition hover:bg-usco-cream"
     >
       Cerrar sesión
     </button>
