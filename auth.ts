@@ -3,8 +3,8 @@ import type { Account } from "next-auth";
 import Google from "next-auth/providers/google";
 // Utilidades de roles
 import {
+  ADMIN_ONLY_ROUTES,
   PROTECTED_ROUTES,
-  ROLE_HOME,
   forbiddenPath,
   isUnder,
   normalizeRole,
@@ -70,23 +70,24 @@ export const { handlers, auth } = NextAuth({
 
     // Define qué ve el resto de la app cuando llama a auth() / useSession().
     async session({ session, token }) {
-       session.accessToken =
-        typeof token.accessToken === "string" ? token.accessToken : undefined;
+        session.accessToken =
+          typeof token.accessToken === "string" ? token.accessToken : undefined;
       session.user.role = normalizeRole(token.role);
       return session;
     },
 
-    // Lo usa proxy.ts: controla qué rol puede entar a cada ruta
+    // Lo usa proxy.ts: exige sesión en rutas privadas y rol ADMIN en las de admin
     authorized({ auth: session, request: { nextUrl } }) {
       const path = nextUrl.pathname;
       if (!PROTECTED_ROUTES.some((base) => isUnder(path, base))) return true;
       if (!session?.user) return false; // sin sesión → /login
 
-      // Cada rol solo entra a SU zona; si pide la del otro, lo mandamos a su inicio.
-      const { role } = session.user;
-      const otherRole = role === "ADMIN" ? "USER" : "ADMIN";
-      if (isUnder(path, ROLE_HOME[otherRole])) {
-        return Response.redirect(new URL(forbiddenPath(role), nextUrl));
+      // Zona de admin: cualquier otro rol vuelve al perfil con un aviso
+      if (
+        ADMIN_ONLY_ROUTES.some((base) => isUnder(path, base)) &&
+        session.user.role !== "ADMIN"
+      ) {
+        return Response.redirect(new URL(forbiddenPath(), nextUrl));
       }
       return true;
     },

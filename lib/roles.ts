@@ -1,22 +1,34 @@
-import type { UserRole } from "@/types/auth";
+/** Landing page after login (the catalog). Open to any signed-in user. */
+export const HOME_PATH = "/home";
 
-/** Pantalla de cada rol. También es el prefijo de URL exclusivo de ese rol. */
-export const ROLE_HOME: Record<UserRole, string> = {
-  USER: "/user",
-  ADMIN: "/admin",
-};
+/** Profile page. Open to any signed-in user. */
+export const PROFILE_PATH = "/profile";
 
-/** Rutas privadas. Debe coincidir con el matcher de proxy.ts. */
-export const PROTECTED_ROUTES = ["/user", "/admin"] as const;
+/** The user's own reports and their history. Open to any signed-in user. */
+export const MY_REPORTS_PATH = "/my-reports";
+
+/** Admin dashboard. Only ADMIN can enter. */
+export const ADMIN_PATH = "/admin";
+
+/** Routes that require a session. Must match the matcher in proxy.ts. */
+export const PROTECTED_ROUTES = [HOME_PATH, PROFILE_PATH, MY_REPORTS_PATH, ADMIN_PATH] as const;
+
+/** Routes that also require the ADMIN role. */
+export const ADMIN_ONLY_ROUTES = [ADMIN_PATH] as const;
 
 export function isUnder(pathname: string, base: string): boolean {
   return pathname === base || pathname.startsWith(`${base}/`);
 }
 
-/** Destino cuando alguien intenta entrar a la zona del otro rol. */
-export function forbiddenPath(role: UserRole): string {
-  return `${ROLE_HOME[role]}?error=forbidden`;
+/** Where a signed-in user without permission is sent (the profile shows a notice). */
+export function forbiddenPath(): string {
+  return `${PROFILE_PATH}?error=forbidden`;
 }
+
+/**
+ * Roles reconocidos por la app. El valor "ADMIN" concede permisos de administrador.
+ */
+export type UserRole = "USER" | "ADMIN";
 
 /**
  * Convierte el rol crudo del backend en UserRole.

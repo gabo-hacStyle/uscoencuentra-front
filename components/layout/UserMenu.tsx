@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { IconUser } from "@/components/ui/icons";
-
-// TODO: confirm the profile route
-const PROFILE_PATH = "/perfil";
+import { PROFILE_PATH } from "@/lib/roles";
 
 export default function UserMenu({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);

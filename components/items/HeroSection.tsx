@@ -3,12 +3,11 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import type { FormEvent } from "react";
 import { IconSearch, IconSparkles } from "@/components/ui/icons";
+import { HOME_PATH as CATALOG_PATH } from "@/lib/roles";
 
 // Must match the heroSearchId prop given to <Navbar /> in the page
 export const HERO_SEARCH_ID = "hero-search";
 
-// TODO: change if the catalog moves to another route
-const CATALOG_PATH = "/dashboard";
 
 export default function HeroSection() {
   const router = useRouter();

@@ -3,9 +3,7 @@ import ReportItemButton from "@/components/items/ReportItemButton";
 import { IconChevronRight } from "@/components/ui/icons";
 import { CATEGORY_CONFIG, formatPublicationCount } from "@/lib/item-categories";
 import type { CategorySummary } from "@/types/item";
-
-// TODO: change if the catalog moves to another route
-const CATALOG_PATH = "/dashboard";
+import { HOME_PATH as CATALOG_PATH } from "@/lib/roles";
 
 interface ExploreSectionProps {
     categories: CategorySummary[]; // counters coming from the service

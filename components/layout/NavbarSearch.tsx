@@ -3,9 +3,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { IconSearch } from "@/components/ui/icons";
+import { HOME_PATH as CATALOG_PATH } from "@/lib/roles";
 
-// TODO: change if the catalog moves to another route
-const CATALOG_PATH = "/dashboard";
 
 interface NavbarSearchProps {
   heroSearchId?: string;
