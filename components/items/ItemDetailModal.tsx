@@ -3,7 +3,7 @@
 import ItemImage from "@/components/items/ItemImage";
 import Modal from "@/components/ui/BaseModal";
 import { IconClose, IconHelp, IconLock, IconPin } from "@/components/ui/icons";
-import { formatPublishedDate } from "@/lib/item-format";
+import { formatEventDate, formatPublishedDate } from "@/lib/item-format";
 import { ITEM_TEXTS } from "@/lib/item-texts";
 import type { Item } from "@/types/item";
 
@@ -60,15 +60,21 @@ export default function ItemDetailModal({ item, onClose, onContact }: ItemDetail
 
             <dl className="grid grid-cols-2 gap-4 border-y border-usco-line py-5">
                 <div>
-                <dt className={labelClassName}>Categoría</dt>
-                <dd className="mt-1 font-medium text-usco-ink">{item.category}</dd>
+                    <dt className={labelClassName}>Categoría</dt>
+                    <dd className="mt-1 font-medium text-usco-ink">{item.category}</dd>
+                </div>
+                <div className="col-span-2">
+                    <dt className={labelClassName}>
+                        {item.type === "lost" ? "Fecha de pérdida" : "Fecha del hallazgo"}
+                    </dt>
+                    <dd className="mt-1 font-medium text-usco-ink">{formatEventDate(item.eventDate)}</dd>
                 </div>
                 <div>
-                <dt className={labelClassName}>Ubicación</dt>
-                <dd className="mt-1 flex items-center gap-1.5 font-medium text-usco-ink">
-                    <IconPin className="h-4 w-4 shrink-0 text-usco-wine" />
-                    {item.location}
-                </dd>
+                    <dt className={labelClassName}>Ubicación</dt>
+                    <dd className="mt-1 flex items-center gap-1.5 font-medium text-usco-ink">
+                        <IconPin className="h-4 w-4 shrink-0 text-usco-wine" />
+                        {item.location}
+                    </dd>
                 </div>
             </dl>
 

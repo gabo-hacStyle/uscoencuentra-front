@@ -12,6 +12,7 @@ export interface Item {
     category: ItemCategory; // typed, so a misspelled category fails at compile time
     location: string;
     imageUrl: string | null; // URL of the stored image, or null when the report has no photo
+    eventDate: string; // YYYY-MM-DD: when it was lost or found (date only, no time)
     publishedAt: string; // ISO 8601; the frontend formats it for display
 }
 

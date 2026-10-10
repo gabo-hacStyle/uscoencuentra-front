@@ -45,6 +45,7 @@ export async function createItem(input: CreateItemInput): Promise<Item> {
         category: input.category,
         location: input.location,
         imageUrl: null, // the real backend uploads the file and returns its URL
+        eventDate: input.eventDate,
         publishedAt: new Date().toISOString(),
     };
 }

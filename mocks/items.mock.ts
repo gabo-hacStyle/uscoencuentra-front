@@ -5,6 +5,12 @@ import type { CategorySummary } from "@/types/item";
 const daysAgo = (days: number) =>
     new Date(Date.now() - days * 86_400_000).toISOString();
 
+// Same idea as a date-only string (YYYY-MM-DD) in Bogotá time, for eventDate
+const dateAgo = (days: number) =>
+    new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(
+        new Date(Date.now() - days * 86_400_000),
+    );
+
 export const itemsMock: Item[] = [
     {
         id: "1",
@@ -14,6 +20,7 @@ export const itemsMock: Item[] = [
         category: "Tecnología",
         location: "Biblioteca Central",
         imageUrl: "/mocks/airpods.jpg",
+        eventDate: dateAgo(0),
         publishedAt: daysAgo(0),
     },
     {
@@ -24,6 +31,7 @@ export const itemsMock: Item[] = [
         category: "Documentos",
         location: "Bloque de Ingeniería",
         imageUrl: "/mocks/studentID.jpg",
+        eventDate: dateAgo(2),
         publishedAt: daysAgo(1),
     },
     {
@@ -34,6 +42,7 @@ export const itemsMock: Item[] = [
         category: "Accesorios",
         location: "Cafetería La Venada",
         imageUrl: "/mocks/backpack.jpg",
+        eventDate: dateAgo(4),
         publishedAt: daysAgo(3),
     },
     {
@@ -44,6 +53,7 @@ export const itemsMock: Item[] = [
         category: "Tecnología",
         location: "Edificio de Ingeniería",
         imageUrl: "/mocks/calculator.jpg",
+        eventDate: dateAgo(6),
         publishedAt: daysAgo(5),
     },
     {
@@ -54,6 +64,7 @@ export const itemsMock: Item[] = [
         category: "Otros",
         location: "Plazoleta central",
         imageUrl: "/mocks/keychain.jpg",
+        eventDate: dateAgo(9),
         publishedAt: daysAgo(8),
     },
     {
@@ -64,6 +75,7 @@ export const itemsMock: Item[] = [
         category: "Accesorios",
         location: "Coliseo de deportes",
         imageUrl: null, // no photo, to test that case
+        eventDate: dateAgo(10),
         publishedAt: daysAgo(8),
     },
     {
@@ -74,6 +86,7 @@ export const itemsMock: Item[] = [
         category: "Accesorios",
         location: "Bloque de Humanidades",
         imageUrl: "/mocks/glasses.jpg",
+        eventDate: dateAgo(14),
         publishedAt: daysAgo(12),
     },
 ];

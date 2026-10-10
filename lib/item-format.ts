@@ -42,3 +42,15 @@ export function formatRelativeDate(iso: string, now: Date = new Date()): string 
         .format(date)
         .replace(".", "");
 }
+
+// "3 oct 2026" from a date-only string. Pinned to Bogotá time so server and browser agree.
+export function formatEventDate(date: string): string {
+    return new Intl.DateTimeFormat("es-CO", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        timeZone: "America/Bogota",
+    })
+        .format(new Date(`${date}T12:00:00-05:00`))
+        .replace(".", "");
+}
