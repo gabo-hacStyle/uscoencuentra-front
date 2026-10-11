@@ -390,8 +390,8 @@ export default function ReportItemModal({ onClose }: ReportItemModalProps) {
                     </span>
                 </label>
                 <p className="mt-1.5 pl-7 text-xs text-usco-muted">
-                    Tu contacto no se publica: solo se comparte de forma privada cuando alguien te
-                    escribe desde el reporte.
+                    Tu contacto no se publica: solo lo ve quien abre tu reporte y pide contactarte de forma
+                    privada. Tu teléfono solo se comparte si lo autorizas en tu perfil.
                 </p>
                 {shown("accepted") && (
                     <p id="report-accepted-error" className="mt-1 pl-7 text-xs font-medium text-usco-wine">

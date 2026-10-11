@@ -25,7 +25,7 @@ function InfoField({ label, value }: { label: string; value: string }) {
         <dt className="text-[0.65rem] font-bold uppercase tracking-wider text-usco-muted">
             {label}
         </dt>
-        <dd className="mt-1 wrap-break font-bold text-usco-ink">{value}</dd>
+        <dd className="mt-1 wrap-break-word font-bold text-usco-ink">{value}</dd>
         </div>
     );
 }
