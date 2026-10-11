@@ -30,7 +30,12 @@ function parseProfile(data: unknown): ProfileResponse | null {
   const d = data as Record<string, unknown>;
   if (d.numero != null && typeof d.numero !== "string") return null;
 
-  const numero = typeof d.numero === "string" && d.numero.trim() !== "" ? d.numero.trim() : null;
+  // The canonical form has no spaces or hyphens. They are stripped in case the backend
+  // sends "+57 312 456 7890", so comparisons and the edit field keep working.
+  const numero =
+    typeof d.numero === "string" && d.numero.trim() !== ""
+      ? d.numero.replace(/[\s-]/g, "")
+      : null;
   if (numero !== null && !isE164(numero)) {
     // BACKEND: debe responder siempre en E.164. No se imprime el valor (es un dato personal).
     console.warn('[profile] El backend devolvió "numero" fuera de formato E.164 (+57XXXXXXXXXX).');
@@ -39,6 +44,7 @@ function parseProfile(data: unknown): ProfileResponse | null {
   return {
     numero,
     image: typeof d.image === "string" && d.image !== "" ? d.image : null,
+    shareContact: d.shareContact === true, // absent or invalid = not shared (safe default)
   };
 }
 
@@ -71,7 +77,7 @@ async function requestProfile(
     const error = (await response.json().catch(() => null)) as { message?: unknown } | null;
     throw new ProfileApiError(
       "Validation",
-      typeof error?.message === "string" ? error.message : "El servidor no aceptó el número ingresado.",
+      typeof error?.message === "string" ? error.message : "El servidor no aceptó los datos enviados.",
     );
   }
   if (!response.ok) throw new ProfileApiError("Unavailable", `El backend respondió ${response.status}`);
@@ -82,20 +88,46 @@ async function requestProfile(
   return profile;
 }
 
-// DATOS DUMMY (solo con MOCK_BACKEND=true): guarda el número en memoria del servidor,
-// se pierde al reiniciar `npm run dev`.
-const globalForMock = globalThis as unknown as { __uscoMockNumbers?: Map<string, string> };
+// DATOS DUMMY (solo con MOCK_BACKEND=true): guardan el número y la preferencia en la memoria
+// del servidor; se pierden al reiniciar `npm run dev`.
+const globalForMock = globalThis as unknown as {
+  __uscoMockNumbers?: Map<string, string>;
+  __uscoMockShare?: Map<string, boolean>;
+};
 const mockNumbers = (globalForMock.__uscoMockNumbers ??= new Map<string, string>());
+const mockShare = (globalForMock.__uscoMockShare ??= new Map<string, boolean>());
 
 export async function getProfile(ctx: ProfileContext): Promise<ProfileResponse> {
-  if (isMockBackendEnabled()) return { numero: mockNumbers.get(ctx.email) ?? null, image: null };
+  if (isMockBackendEnabled()) {
+    return {
+      numero: mockNumbers.get(ctx.email) ?? null,
+      image: null,
+      shareContact: mockShare.get(ctx.email) ?? false,
+    };
+  }
   return requestProfile("GET", ctx.accessToken);
 }
 
 export async function updatePhone(ctx: ProfileContext, numero: string): Promise<ProfileResponse> {
   if (isMockBackendEnabled()) {
     mockNumbers.set(ctx.email, numero);
-    return { numero, image: null };
+    return { numero, image: null, shareContact: mockShare.get(ctx.email) ?? false };
   }
   return requestProfile("PATCH", ctx.accessToken, { numero });
+}
+
+/** Turns the phone sharing on or off. The backend rejects "true" when there is no number. */
+export async function updateShareContact(
+  ctx: ProfileContext,
+  shareContact: boolean,
+): Promise<ProfileResponse> {
+  if (isMockBackendEnabled()) {
+    const numero = mockNumbers.get(ctx.email) ?? null;
+    if (shareContact && !numero) {
+      throw new ProfileApiError("Validation", "Registra tu número antes de compartirlo.");
+    }
+    mockShare.set(ctx.email, shareContact);
+    return { numero, image: null, shareContact };
+  }
+  return requestProfile("PATCH", ctx.accessToken, { shareContact });
 }
