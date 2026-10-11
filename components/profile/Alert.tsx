@@ -7,8 +7,8 @@ type AlertProps = {
 };
 
 const STYLES = {
-  error: "border-red-200 bg-red-50 text-red-800",
-  success: "border-green-200 bg-green-50 text-green-800",
+  error: "border-usco-wine/30 bg-usco-wine/10 text-usco-wine",
+  success: "border-usco-success/30 bg-usco-success/10 text-usco-success",
 };
 
 export function Alert({ variant, children, className = "" }: AlertProps) {

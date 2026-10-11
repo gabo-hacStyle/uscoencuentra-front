@@ -14,6 +14,7 @@
   --color-usco-gold-dark: #c98f1c;  /* gold hover */
   --color-usco-rose: #cf9ea4;       /* soft pink for the hero's second headline line */
   --color-usco-paper: #f6f0e8;      /* background of the search inputs */
+  --color-usco-success: #1f7a4d;  /* success messages */
 
   --font-sans: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
 }

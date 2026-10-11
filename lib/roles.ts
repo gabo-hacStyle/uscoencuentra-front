@@ -30,6 +30,12 @@ export function forbiddenPath(): string {
  */
 export type UserRole = "USER" | "ADMIN";
 
+/** Human-readable role names shown in the UI. */
+export const ROLE_LABELS: Record<UserRole, string> = {
+  USER: "Usuario",
+  ADMIN: "Administrador",
+};
+
 /**
  * Convierte el rol crudo del backend en UserRole.
  * Mínimo privilegio: solo "ADMIN" (o "ROLE_ADMIN") da acceso de administrador.

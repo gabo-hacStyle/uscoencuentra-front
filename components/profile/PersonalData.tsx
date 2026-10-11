@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Alert } from "@/components/profile/Alert";
 import { EditProfileModal } from "@/components/profile/EditProfileModal";
 import { formatPhone } from "@/lib/item-format";
@@ -8,7 +9,7 @@ import { formatPhone } from "@/lib/item-format";
 type PersonalDataProps = {
   name: string;
   email: string;
-  role: string;
+  role: string; // already a display label ("Usuario" / "Administrador")
   numero: string | null;
   loadError: string | null;
 };
@@ -17,6 +18,7 @@ const FOCUS =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-usco-wine";
 
 export function PersonalData({ name, email, role, numero, loadError }: PersonalDataProps) {
+  const router = useRouter();
   const [currentNumero, setCurrentNumero] = useState(numero);
   const [isEditing, setIsEditing] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
@@ -45,7 +47,8 @@ export function PersonalData({ name, email, role, numero, loadError }: PersonalD
 
       {justSaved && (
         <Alert variant="success" className="mt-4">
-          Número de contacto actualizado correctamente.
+          Número de contacto actualizado correctamente. Puedes autorizar que se comparta en
+          «Privacidad y seguridad».
         </Alert>
       )}
 
@@ -75,8 +78,8 @@ export function PersonalData({ name, email, role, numero, loadError }: PersonalD
           <div className="rounded-2xl border-2 border-dashed border-usco-wine/40 bg-usco-sand/50 p-4">
             <p className="font-semibold text-usco-ink">No hay número de contacto registrado</p>
             <p className="mt-1 text-sm text-usco-muted">
-              Es opcional, pero sirve para que otros usuarios puedan comunicarse contigo cuando sea
-              necesario.
+              Es opcional. Solo se comparte con quien te contacte si lo autorizas en «Privacidad
+              y seguridad».
             </p>
             <button
               type="button"
@@ -100,6 +103,7 @@ export function PersonalData({ name, email, role, numero, loadError }: PersonalD
             setCurrentNumero(savedNumero); // dato devuelto por el backend
             setIsEditing(false);
             setJustSaved(true);
+            router.refresh(); // re-reads the profile so the privacy card knows a number exists
           }}
         />
       )}

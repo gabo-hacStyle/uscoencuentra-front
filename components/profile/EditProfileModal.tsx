@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState, type SubmitEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { updatePhoneAction } from "@/actions/profile";
 import { Alert } from "@/components/profile/Alert";
+import Modal from "@/components/ui/BaseModal";
+import { IconClose } from "@/components/ui/icons";
 import { toNationalDigits, validateColombianPhone } from "@/lib/phone";
 
 type EditProfileModalProps = {
   name: string;
   email: string;
-  role: string;
+  role: string; // already a display label ("Usuario" / "Administrador")
   numero: string | null;
   onClose: () => void;
   onSaved: (numero: string | null) => void;
@@ -18,25 +20,18 @@ const FOCUS =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-usco-wine";
 
 export function EditProfileModal({ name, email, role, numero, onClose, onSaved }: EditProfileModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  //muestra el número NACIONAL; el +57 no se escribe (se agrega al enviar).
+  // Shows the NATIONAL number; "+57" is not typed (it is added when sending).
   const [value, setValue] = useState(numero ? toNationalDigits(numero) : "");
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-
-  // Abre el diálogo como modal (fondo bloqueado, foco atrapado, Esc disponible).
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (dialog && !dialog.open) dialog.showModal();
-  }, []);
 
   const validation = validateColombianPhone(value);
   const isUnchanged = validation.ok && validation.value === numero;
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSaving) return; // evita envíos repetidos
+    if (isSaving) return; // avoids duplicate submits
     setFormError(null);
 
     if (!validation.ok) {
@@ -63,18 +58,15 @@ export function EditProfileModal({ name, email, role, numero, onClose, onSaved }
   }
 
   return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby="edit-profile-title"
-      onCancel={(event) => {
-        event.preventDefault(); // Esc: cerramos nosotros, salvo que se esté guardando
-        if (!isSaving) onClose();
-      }}
-      className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-3xl border border-usco-line bg-white p-0 text-usco-ink shadow-2xl backdrop:bg-black/40"
-    >
-      <form onSubmit={handleSubmit} noValidate className="space-y-5 p-6 sm:p-8">
+    // dismissible={false} while saving: Esc and backdrop click are ignored
+    <Modal label="Editar perfil" onClose={onClose} dismissible={!isSaving} className="w-[min(32rem,92vw)]">
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="relative max-h-[90vh] space-y-5 overflow-y-auto p-6 sm:p-8"
+      >
         <div>
-          <h2 id="edit-profile-title" className="text-xl font-bold">Editar perfil</h2>
+          <h2 className="pr-8 text-xl font-bold text-usco-ink">Editar perfil</h2>
           <p className="mt-1 text-sm text-usco-muted">Solo puedes modificar tu número de contacto.</p>
         </div>
 
@@ -82,15 +74,15 @@ export function EditProfileModal({ name, email, role, numero, onClose, onSaved }
           <dl className="space-y-3 rounded-2xl bg-usco-sand/50 p-4 text-sm">
             <div>
               <dt className="text-usco-muted">Nombre</dt>
-              <dd className="wrap-break-word font-semibold">{name}</dd>
+              <dd className="wrap-break-word font-semibold text-usco-ink">{name}</dd>
             </div>
             <div>
               <dt className="text-usco-muted">Correo institucional</dt>
-              <dd className="break-all font-semibold">{email}</dd>
+              <dd className="break-all font-semibold text-usco-ink">{email}</dd>
             </div>
             <div>
               <dt className="text-usco-muted">Rol</dt>
-              <dd className="font-semibold">{role}</dd>
+              <dd className="font-semibold text-usco-ink">{role}</dd>
             </div>
           </dl>
           <p className="mt-2 text-xs text-usco-muted">
@@ -101,7 +93,10 @@ export function EditProfileModal({ name, email, role, numero, onClose, onSaved }
         {formError && <Alert variant="error">{formError}</Alert>}
 
         <div>
-          <label htmlFor="numero" className="block text-sm font-semibold">
+          <label
+            htmlFor="numero"
+            className="text-[0.65rem] font-bold uppercase tracking-wider text-usco-muted"
+          >
             Número de celular
           </label>
           <input
@@ -120,10 +115,10 @@ export function EditProfileModal({ name, email, role, numero, onClose, onSaved }
             }}
             aria-invalid={fieldError ? true : undefined}
             aria-describedby={fieldError ? "numero-error" : "numero-help"}
-            className="mt-2 w-full rounded-2xl border border-usco-line bg-white px-4 py-3 outline-none transition focus:border-usco-wine focus-visible:ring-2 focus-visible:ring-usco-wine/30 aria-invalid:border-red-400"
+            className="mt-2 w-full rounded-xl border border-usco-line bg-usco-cream px-4 py-3 text-usco-ink outline-none transition placeholder:text-usco-muted focus:border-usco-wine aria-invalid:border-usco-wine"
           />
           {fieldError ? (
-            <p id="numero-error" className="mt-2 text-sm text-red-700">{fieldError}</p>
+            <p id="numero-error" className="mt-2 text-sm font-medium text-usco-wine">{fieldError}</p>
           ) : (
             <p id="numero-help" className="mt-2 text-sm text-usco-muted">
               Escribe 10 dígitos, sin +57. Ejemplo: 312 456 7890.
@@ -136,7 +131,7 @@ export function EditProfileModal({ name, email, role, numero, onClose, onSaved }
             type="button"
             onClick={onClose}
             disabled={isSaving}
-            className={`rounded-2xl border border-usco-line px-5 py-3 text-sm font-semibold transition hover:bg-usco-sand/60 disabled:opacity-60 ${FOCUS}`}
+            className={`rounded-full border border-usco-line px-5 py-2.5 font-bold text-usco-ink transition hover:bg-usco-cream disabled:opacity-60 ${FOCUS}`}
           >
             Cancelar
           </button>
@@ -144,12 +139,24 @@ export function EditProfileModal({ name, email, role, numero, onClose, onSaved }
             type="submit"
             disabled={isSaving || isUnchanged}
             aria-busy={isSaving}
-            className={`rounded-2xl bg-usco-wine px-5 py-3 text-sm font-semibold text-white transition hover:bg-usco-wine-dark disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS}`}
+            className={`rounded-full bg-usco-wine px-5 py-2.5 font-bold text-white transition hover:bg-usco-wine-dark disabled:cursor-not-allowed disabled:opacity-50 ${FOCUS}`}
           >
             {isSaving ? "Guardando…" : "Guardar cambios"}
           </button>
         </div>
+
+        {/* Last in the DOM on purpose: the dialog focuses the first focusable element,
+            and it must be the phone input, not this button. */}
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isSaving}
+          aria-label="Cerrar"
+          className="absolute right-5 top-5 grid h-8 w-8 place-items-center rounded-full text-usco-ink transition hover:bg-usco-cream disabled:opacity-50"
+        >
+          <IconClose className="h-4 w-4" />
+        </button>
       </form>
-    </dialog>
+    </Modal>
   );
 }
