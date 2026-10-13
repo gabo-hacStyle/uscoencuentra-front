@@ -11,6 +11,8 @@ const dateAgo = (days: number) =>
         new Date(Date.now() - days * 86_400_000),
     );
 
+// isOwner is SIMULATED here: the real backend computes it from the token.
+// Items 3, 5, 6 and 8 behave as "yours"; items 4 and 6 start in verification.
 export const itemsMock: Item[] = [
     {
         id: "1",
@@ -22,6 +24,10 @@ export const itemsMock: Item[] = [
         imageUrl: "/mocks/airpods.jpg",
         eventDate: dateAgo(0),
         publishedAt: daysAgo(0),
+        status: "active",
+        failedAttempts: 0,
+        recoveredAt: null,
+        isOwner: false,
     },
     {
         id: "2",
@@ -33,6 +39,10 @@ export const itemsMock: Item[] = [
         imageUrl: "/mocks/studentID.jpg",
         eventDate: dateAgo(2),
         publishedAt: daysAgo(1),
+        status: "active",
+        failedAttempts: 0,
+        recoveredAt: null,
+        isOwner: false,
     },
     {
         id: "3",
@@ -44,6 +54,10 @@ export const itemsMock: Item[] = [
         imageUrl: "/mocks/backpack.jpg",
         eventDate: dateAgo(4),
         publishedAt: daysAgo(3),
+        status: "active",
+        failedAttempts: 1,
+        recoveredAt: null,
+        isOwner: true,
     },
     {
         id: "4",
@@ -55,6 +69,10 @@ export const itemsMock: Item[] = [
         imageUrl: "/mocks/calculator.jpg",
         eventDate: dateAgo(6),
         publishedAt: daysAgo(5),
+        status: "in_verification",
+        failedAttempts: 0,
+        recoveredAt: null,
+        isOwner: false,
     },
     {
         id: "5",
@@ -66,6 +84,10 @@ export const itemsMock: Item[] = [
         imageUrl: "/mocks/keychain.jpg",
         eventDate: dateAgo(9),
         publishedAt: daysAgo(8),
+        status: "active",
+        failedAttempts: 0,
+        recoveredAt: null,
+        isOwner: true,
     },
     {
         id: "6",
@@ -77,6 +99,10 @@ export const itemsMock: Item[] = [
         imageUrl: null, // no photo, to test that case
         eventDate: dateAgo(10),
         publishedAt: daysAgo(8),
+        status: "in_verification",
+        failedAttempts: 1,
+        recoveredAt: null,
+        isOwner: true,
     },
     {
         id: "7",
@@ -88,6 +114,25 @@ export const itemsMock: Item[] = [
         imageUrl: "/mocks/glasses.jpg",
         eventDate: dateAgo(14),
         publishedAt: daysAgo(12),
+        status: "active",
+        failedAttempts: 0,
+        recoveredAt: null,
+        isOwner: false,
+    },
+    {
+        id: "8",
+        type: "found",
+        title: "Cargador de portátil",
+        description: "Cargador de portátil negro con cable, encontrado conectado en una mesa.",
+        category: "Tecnología",
+        location: "Sala de cómputo",
+        imageUrl: null, // no photo, to test that case
+        eventDate: dateAgo(8),
+        publishedAt: daysAgo(7),
+        status: "recovered",
+        failedAttempts: 0,
+        recoveredAt: daysAgo(5),
+        isOwner: true,
     },
 ];
 
@@ -100,6 +145,7 @@ export const contactsMock: Record<string, PrivateContact> = {
     "5": { publishedBy: "M**** T*****", whatsapp: null, email: "maria.t@usco.edu.co" },
     "6": { publishedBy: "S****** V****", whatsapp: "+573112223344", email: "santiago.v@usco.edu.co" },
     "7": { publishedBy: "L**** P****", whatsapp: "+573157778899", email: "laura.pd@usco.edu.co" },
+    "8": { publishedBy: "D***** H****", whatsapp: "+573101112233", email: "diana.h@usco.edu.co" },
 };
 
 // Dummy counters, same shape the backend will return

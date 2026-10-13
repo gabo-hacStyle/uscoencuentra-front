@@ -8,6 +8,8 @@ import { formatPhone } from "@/lib/item-format";
 import { ITEM_TEXTS } from "@/lib/item-texts";
 import { getPrivateContact } from "@/services/items.service";
 import type { Item, PrivateContact } from "@/types/item";
+import { registerContactAction } from "@/actions/items";
+import { VERIFICATION_DAYS } from "@/lib/item-status";
 
 type ContactState =
     | { status: "loading" }
@@ -60,6 +62,13 @@ export default function PrivateContactModal({ item, onClose }: PrivateContactMod
             <IconClose className="h-4 w-4" />
             </button>
 
+            {item.status === "active" && (
+            <p className="mt-4 text-xs text-usco-muted">
+            Al continuar, el reporte pasará a «En verificación» por hasta {VERIFICATION_DAYS} días
+            mientras coordinan la entrega.
+            </p>
+            )}
+
             <p className="text-xs font-bold uppercase tracking-widest text-usco-wine">
             Contacto privado
             </p>
@@ -100,8 +109,12 @@ export default function PrivateContactModal({ item, onClose }: PrivateContactMod
                 type="button"
                 disabled={state.status !== "ready"}
                 onClick={() => {
-                if (state.status === "ready") contactPublisher(item, state.contact);
-                }}
+                    if (state.status !== "ready") return;
+                    // 1) Open WhatsApp/Gmail first, synchronously, so the browser does not block the window
+                    contactPublisher(item, state.contact);
+                    // 2) Record the contact without waiting; the contact works even if this fails
+                    registerContactAction(item.id).catch(() => {});
+        }}
                 className="rounded-full bg-usco-wine px-5 py-2.5 font-bold text-white transition hover:bg-usco-wine-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
                 {texts.actionLabel}

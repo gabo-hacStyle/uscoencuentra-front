@@ -3,6 +3,7 @@ import { IconPin } from "@/components/ui/icons";
 import { formatRelativeDate } from "@/lib/item-format";
 import { ITEM_TEXTS } from "@/lib/item-texts";
 import type { Item } from "@/types/item";
+import ItemStatusBadge from "@/components/items/ItemStatusBadge";
 
 interface ItemCardProps {
     item: Item;
@@ -33,11 +34,16 @@ export default function ItemCard({ item, showType, onSelect }: ItemCardProps) {
                 {texts.badgeLabel}
             </span>
             )}
+            {/* Only shown when the item is not simply "active" */}
+            <ItemStatusBadge status={item.status} className="absolute right-3 top-3" />
         </div>
 
         <div className="flex flex-1 flex-col gap-1 p-4">
             <h3 className="line-clamp-1 text-lg font-bold text-usco-ink">{item.title}</h3>
-            <p className="text-sm text-usco-muted">{item.category}</p>
+            <p className="text-sm text-usco-muted">
+                {item.category}
+                {item.isOwner && <span className="font-bold text-usco-wine"> · Tu reporte</span>}
+            </p>
 
             {/* mt-auto keeps location and date aligned at the bottom across cards */}
             <div className="mt-auto flex items-center justify-between gap-3 pt-3 text-xs text-usco-muted">

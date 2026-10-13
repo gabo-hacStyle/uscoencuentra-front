@@ -1,3 +1,10 @@
+import Credentials from "next-auth/providers/credentials"; // DEV-BYPASS
+import {
+  BackendAuthError,
+  exchangeGoogleIdToken,
+  isMockBackendEnabled, // DEV-BYPASS
+} from "@/services/auth.service";
+
 // Contrato con el backend Spring Boot (POST /auth/google).
 
 //Tipo de rol que entiende el fronted

@@ -1,6 +1,7 @@
 "use client";
 
 import ItemImage from "@/components/items/ItemImage";
+import ItemStatusBadge from "@/components/items/ItemStatusBadge";
 import Modal from "@/components/ui/BaseModal";
 import { IconClose, IconHelp, IconLock, IconPin } from "@/components/ui/icons";
 import { formatEventDate, formatPublishedDate } from "@/lib/item-format";
@@ -28,9 +29,9 @@ export default function ItemDetailModal({ item, onClose, onContact }: ItemDetail
         <div className="grid max-h-[90vh] overflow-y-auto md:grid-cols-2">
             <div className="relative h-56 md:h-auto md:min-h-128">
             <ItemImage
-            src={item.imageUrl}
-            alt={item.title}
-            sizes="(min-width: 768px) 28rem, 92vw"
+                src={item.imageUrl}
+                alt={item.title}
+                sizes="(min-width: 768px) 28rem, 92vw"
             />
             </div>
 
@@ -50,6 +51,7 @@ export default function ItemDetailModal({ item, onClose, onContact }: ItemDetail
                 >
                 {texts.badgeLabel}
                 </span>
+                <ItemStatusBadge status={item.status} />
                 <span className="text-sm text-usco-muted">
                 Publicado {formatPublishedDate(item.publishedAt)}
                 </span>
@@ -60,40 +62,61 @@ export default function ItemDetailModal({ item, onClose, onContact }: ItemDetail
 
             <dl className="grid grid-cols-2 gap-4 border-y border-usco-line py-5">
                 <div>
-                    <dt className={labelClassName}>Categoría</dt>
-                    <dd className="mt-1 font-medium text-usco-ink">{item.category}</dd>
-                </div>
-                <div className="col-span-2">
-                    <dt className={labelClassName}>
-                        {item.type === "lost" ? "Fecha de pérdida" : "Fecha del hallazgo"}
-                    </dt>
-                    <dd className="mt-1 font-medium text-usco-ink">{formatEventDate(item.eventDate)}</dd>
+                <dt className={labelClassName}>Categoría</dt>
+                <dd className="mt-1 font-medium text-usco-ink">{item.category}</dd>
                 </div>
                 <div>
-                    <dt className={labelClassName}>Ubicación</dt>
-                    <dd className="mt-1 flex items-center gap-1.5 font-medium text-usco-ink">
-                        <IconPin className="h-4 w-4 shrink-0 text-usco-wine" />
-                        {item.location}
-                    </dd>
+                <dt className={labelClassName}>Ubicación</dt>
+                <dd className="mt-1 flex items-center gap-1.5 font-medium text-usco-ink">
+                    <IconPin className="h-4 w-4 shrink-0 text-usco-wine" />
+                    {item.location}
+                </dd>
+                </div>
+                <div className="col-span-2">
+                <dt className={labelClassName}>
+                    {item.type === "lost" ? "Fecha de pérdida" : "Fecha del hallazgo"}
+                </dt>
+                <dd className="mt-1 font-medium text-usco-ink">{formatEventDate(item.eventDate)}</dd>
                 </div>
             </dl>
 
-            <div className="flex items-start gap-3 rounded-2xl bg-usco-sand p-4 text-sm text-usco-ink">
-                <IconLock className="mt-0.5 h-5 w-5 shrink-0 text-usco-wine" />
-                <p>
-                La identidad y los datos de contacto solo se muestran al iniciar una
-                coordinación privada.
+            {item.isOwner ? (
+                // Your own report: contacting yourself makes no sense. The owner actions come next.
+                <div className="rounded-2xl bg-usco-sand p-4 text-sm text-usco-ink">
+                <p className="font-bold">Este es tu reporte</p>
+                <p className="mt-1 text-usco-muted">
+                    {item.status === "in_verification"
+                    ? "Alguien te contactó sobre este objeto y está pendiente de tu verificación."
+                    : "Aquí verás cuándo alguien te contacte por este reporte."}
                 </p>
-            </div>
+                </div>
+            ) : (
+                <>
+                <div className="flex items-start gap-3 rounded-2xl bg-usco-sand p-4 text-sm text-usco-ink">
+                    <IconLock className="mt-0.5 h-5 w-5 shrink-0 text-usco-wine" />
+                    <p>
+                    La identidad y los datos de contacto solo se muestran al iniciar una
+                    coordinación privada.
+                    </p>
+                </div>
 
-            <button
-                type="button"
-                onClick={onContact}
-                className="flex items-center justify-center gap-2 rounded-xl bg-usco-wine px-6 py-3 font-bold text-white transition hover:bg-usco-wine-dark"
-            >
-                <IconHelp className="h-4 w-4" />
-                Contactar de forma privada
-            </button>
+                {item.status === "in_verification" && (
+                    <p className="rounded-2xl bg-usco-cream px-4 py-3 text-sm text-usco-muted">
+                    Alguien ya contactó al publicador y están verificando. Si este objeto también
+                    es tuyo, puedes escribirle igualmente.
+                    </p>
+                )}
+
+                <button
+                    type="button"
+                    onClick={onContact}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-usco-wine px-6 py-3 font-bold text-white transition hover:bg-usco-wine-dark"
+                >
+                    <IconHelp className="h-4 w-4" />
+                    Contactar de forma privada
+                </button>
+                </>
+            )}
             </div>
         </div>
         </Modal>

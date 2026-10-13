@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import type { Account } from "next-auth";
 import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials"; // DEV-BYPASS
 // Utilidades de roles
 import {
   ADMIN_ONLY_ROUTES,
@@ -12,6 +13,7 @@ import {
 import {
   BackendAuthError,
   exchangeGoogleIdToken,
+  isMockBackendEnabled, // DEV-BYPASS
 } from "@/services/auth.service";
 import type { BackendAuthResponse } from "@/types/auth";
 
@@ -34,10 +36,30 @@ export const { handlers, auth } = NextAuth({
         },
       },
     }),
+    // DEV-BYPASS: fake sign-in without Google. Only with MOCK_BACKEND=true outside production.
+    ...(isMockBackendEnabled()
+      ? [
+          Credentials({
+            id: "dev",
+            name: "Dev",
+            credentials: { role: {} },
+            authorize(credentials) {
+              const role = credentials?.role === "ADMIN" ? "ADMIN" : "USER";
+              return {
+                id: `dev-${role}`,
+                name: `Dev ${role}`,
+                email: `dev-${role.toLowerCase()}@usco.edu.co`,
+                role,
+              };
+            },
+          }),
+        ]
+      : []),
   ],
   callbacks: {
     // Se ejecuta cuando Google ya autenticó. Aquí el BACKEND decide si la cuenta entra.
     async signIn({ account }) {
+      if (account?.provider === "dev") return isMockBackendEnabled(); // DEV-BYPASS
       if (account?.provider !== "google" || !account.id_token) {
         return "/login?error=MissingIdToken";
       }
@@ -56,7 +78,17 @@ export const { handlers, auth } = NextAuth({
     },
 
     // Guarda los datos del backend en la cookie (solo en el primer login).
-    async jwt({ token, account }) {
+    async jwt({ token, account, user }) {
+      // DEV-BYPASS: store the fake user in the cookie, same fields as the real login
+      if (account?.provider === "dev" && user) {
+        token.accessToken = "dummy-access-token";
+        token.refreshToken = "dummy-refresh-token";
+        token.role = (user as { role?: string }).role;
+        token.name = user.name;
+        token.email = user.email;
+        return token;
+      }
+
       const backendAuth = (account as AccountWithBackend | null)?.backendAuth;
       if (backendAuth) {
         token.accessToken = backendAuth.accessToken;
@@ -70,8 +102,8 @@ export const { handlers, auth } = NextAuth({
 
     // Define qué ve el resto de la app cuando llama a auth() / useSession().
     async session({ session, token }) {
-        session.accessToken =
-          typeof token.accessToken === "string" ? token.accessToken : undefined;
+      session.accessToken =
+        typeof token.accessToken === "string" ? token.accessToken : undefined;
       session.user.role = normalizeRole(token.role);
       return session;
     },
