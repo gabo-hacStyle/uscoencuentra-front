@@ -35,11 +35,7 @@ function parseProfile(data: unknown): ProfileResponse | null {
     // BACKEND: debe responder siempre en E.164. No se imprime el valor (es un dato personal).
     console.warn('[profile] El backend devolvió "numero" fuera de formato E.164 (+57XXXXXXXXXX).');
   }
-
-  return {
-    numero,
-    image: typeof d.image === "string" && d.image !== "" ? d.image : null,
-  };
+  return { numero };
 }
 
 /** Petición autenticada al backend. Solo corre en el servidor (el token no pasa por el navegador). */
@@ -88,14 +84,14 @@ const globalForMock = globalThis as unknown as { __uscoMockNumbers?: Map<string,
 const mockNumbers = (globalForMock.__uscoMockNumbers ??= new Map<string, string>());
 
 export async function getProfile(ctx: ProfileContext): Promise<ProfileResponse> {
-  if (isMockBackendEnabled()) return { numero: mockNumbers.get(ctx.email) ?? null, image: null };
+  if (isMockBackendEnabled()) return { numero: mockNumbers.get(ctx.email) ?? null };
   return requestProfile("GET", ctx.accessToken);
 }
 
 export async function updatePhone(ctx: ProfileContext, numero: string): Promise<ProfileResponse> {
   if (isMockBackendEnabled()) {
     mockNumbers.set(ctx.email, numero);
-    return { numero, image: null };
+    return { numero };
   }
   return requestProfile("PATCH", ctx.accessToken, { numero });
 }
