@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
+import { HOME_PATH } from "@/lib/roles";
 
 const LOADING_TIMEOUT_MS = 5000; //tiempo máximo mostrando "Conectando con Google"
 
@@ -9,7 +10,7 @@ type GoogleSignInButtonProps = {
   callbackUrl?: string;
 };
 
-export function GoogleSignInButton({ callbackUrl = "/login" }: GoogleSignInButtonProps) {
+export function GoogleSignInButton({ callbackUrl = HOME_PATH }: GoogleSignInButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   // Tope de 5 s: si el usuario no avanza, el botón vuelve a la normalidad.
