@@ -1,6 +1,6 @@
 import type { BackendAuthResponse, GoogleLoginRequest } from "@/types/auth";
 
-// TODO: reemplazar por URL real del backend (se define en .env.local).
+//Contrato definido: POST /auth/google
 export const API_URL = process.env.API_URL ?? "http://localhost:8080";
 const GOOGLE_LOGIN_PATH = "/auth/google";
 

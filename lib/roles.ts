@@ -1,22 +1,36 @@
 import type { UserRole } from "@/types/auth";
 
-/** Pantalla de cada rol. También es el prefijo de URL exclusivo de ese rol. */
-export const ROLE_HOME: Record<UserRole, string> = {
-  USER: "/user",
-  ADMIN: "/admin",
-};
+export const HOME_PATH = "/home";
+export const PROFILE_PATH = "/profile";
+export const ADMIN_PATH = "/admin";
 
-/** Rutas privadas. Debe coincidir con el matcher de proxy.ts. */
-export const PROTECTED_ROUTES = ["/user", "/admin"] as const;
+/** Rutas que requieren sesion, con cualquier rol.*/
+const AUTHENTICATED_ROUTES = [PROFILE_PATH];
+/** Rutas unicas de ADMIN.*/
+const ADMIN_ROUTES = [ADMIN_PATH];
+
+export type RouteAccess = "public" | "authenticated" | "admin";
 
 export function isUnder(pathname: string, base: string): boolean {
   return pathname === base || pathname.startsWith(`${base}/`);
 }
 
-/** Destino cuando alguien intenta entrar a la zona del otro rol. */
-export function forbiddenPath(role: UserRole): string {
-  return `${ROLE_HOME[role]}?error=forbidden`;
+export function getRouteAccess(pathname: string): RouteAccess {
+  if (ADMIN_ROUTES.some((base) => isUnder(pathname, base))) return "admin";
+  if (AUTHENTICATED_ROUTES.some((base) => isUnder(pathname, base))) return "authenticated";
+  return "public";
 }
+
+/** Destino cuando un usuario autenticado intenta entrar a la zona del otro rol. */
+export function forbiddenPath(): string {
+  return `${HOME_PATH}?error=forbidden`;
+}
+
+/** Etiquetas para mostrar los roles en la interfaz de profile. */
+export const ROLE_LABEL: Record<UserRole, string> = {
+  USER: "Usuario",
+  ADMIN: "Administrador",
+};
 
 /**
  * Convierte el rol crudo del backend en UserRole.
