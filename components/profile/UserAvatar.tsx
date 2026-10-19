@@ -21,9 +21,6 @@ export function UserAvatar({ name, photoUrl, className = "" }: UserAvatarProps) 
     <div className={`rounded-3xl bg-white p-1.5 shadow-md ${className}`}>
       <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-[1.25rem] bg-usco-sand text-2xl font-bold text-usco-wine">
         {photoUrl ? (
-          // TODO: con fotos reales del backend, usar next/image y registrar el dominio en
-          // images.remotePatterns de next.config.ts.
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={photoUrl}
             alt={`Fotografía de ${name}`}
