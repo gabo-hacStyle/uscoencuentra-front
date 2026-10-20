@@ -3,6 +3,7 @@ import type { UserRole } from "@/types/auth";
 export const HOME_PATH = "/home";
 export const PROFILE_PATH = "/profile";
 export const ADMIN_PATH = "/admin";
+export const MY_REPORTS_PATH = "/my-reports";
 
 /** Rutas que requieren sesion, con cualquier rol.*/
 const AUTHENTICATED_ROUTES = [PROFILE_PATH];

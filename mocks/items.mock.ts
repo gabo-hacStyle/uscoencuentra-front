@@ -1,10 +1,16 @@
 import type { Item, PrivateContact } from "@/types/item";
-import type { CategorySummary } from "@/types/item";
 
 // Dates relative to now, so "Hoy" / "Ayer" always make sense in the demo
 const daysAgo = (days: number) =>
     new Date(Date.now() - days * 86_400_000).toISOString();
 
+// Same idea as a date-only string (YYYY-MM-DD) in Bogotá time, for eventDate
+const dateAgo = (days: number) =>
+    new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(
+        new Date(Date.now() - days * 86_400_000),
+    );
+
+// isOwner is SIMULATED: items 3, 5, 8, 9 and 10 behave as "yours".
 export const itemsMock: Item[] = [
     {
         id: "1",
@@ -12,9 +18,13 @@ export const itemsMock: Item[] = [
         title: "Audífonos inalámbricos",
         description: "Audífonos inalámbricos blancos con su estuche de carga. Marca Apple",
         category: "Tecnología",
-        location: "Biblioteca Central",
+        location: "Biblioteca",
+        locationDetail: "Sala de lectura, segundo piso",
         imageUrl: "/mocks/airpods.jpg",
+        eventDate: dateAgo(0),
         publishedAt: daysAgo(0),
+        status: "active",
+        isOwner: false,
     },
     {
         id: "2",
@@ -22,9 +32,13 @@ export const itemsMock: Item[] = [
         title: "Carnet estudiantil",
         description: "Carnet estudiantil perdido, posiblemente cerca de los salones de ingeniería.",
         category: "Documentos",
-        location: "Bloque de Ingeniería",
+        location: "Ingeniería",
+        locationDetail: "Cerca de los salones del tercer piso",
         imageUrl: "/mocks/studentID.jpg",
+        eventDate: dateAgo(2),
         publishedAt: daysAgo(1),
+        status: "active",
+        isOwner: false,
     },
     {
         id: "3",
@@ -32,9 +46,13 @@ export const itemsMock: Item[] = [
         title: "Maletín rosado",
         description: "Maletín rosado con bolsillo frontal con cierre, correas ajustables, accesorio de conejo y marca Addidas. Posiblemente de una chica",
         category: "Accesorios",
-        location: "Cafetería La Venada",
+        location: "Cafetería",
+        locationDetail: "Mesa junto a la entrada",
         imageUrl: "/mocks/backpack.jpg",
+        eventDate: dateAgo(4),
         publishedAt: daysAgo(3),
+        status: "active",
+        isOwner: true,
     },
     {
         id: "4",
@@ -42,19 +60,27 @@ export const itemsMock: Item[] = [
         title: "Calculadora rosada con brillos",
         description: "Calculadora científica rosada, sin nombre visible, decorada con diamentes de colores.",
         category: "Tecnología",
-        location: "Edificio de Ingeniería",
+        location: "Ingeniería",
+        locationDetail: "Salón 204",
         imageUrl: "/mocks/calculator.jpg",
+        eventDate: dateAgo(6),
         publishedAt: daysAgo(5),
+        status: "in_verification",
+        isOwner: false,
     },
     {
         id: "5",
         type: "found",
         title: "Llaves con llavero",
         description: "Juego de llaves con un llavero decorativo.",
-        category: "Otros",
-        location: "Plazoleta central",
+        category: "Llaves",
+        location: "Bloque Central",
+        locationDetail: "Plazoleta frente a la entrada",
         imageUrl: "/mocks/keychain.jpg",
+        eventDate: dateAgo(9),
         publishedAt: daysAgo(8),
+        status: "active",
+        isOwner: true,
     },
     {
         id: "6",
@@ -62,9 +88,13 @@ export const itemsMock: Item[] = [
         title: "Tula de la universidad con uniforme de volleyball dentro",
         description: "Tula de la universidad, con uniforme de volleyball del equipo masculino.",
         category: "Accesorios",
-        location: "Coliseo de deportes",
+        location: "Bienestar",
+        locationDetail: "Cerca del coliseo",
         imageUrl: null, // no photo, to test that case
+        eventDate: dateAgo(10),
         publishedAt: daysAgo(8),
+        status: "in_verification",
+        isOwner: false,
     },
     {
         id: "7",
@@ -72,9 +102,55 @@ export const itemsMock: Item[] = [
         title: "Gafas negras",
         description: "Gafas de marco negro, probablemente dejadas en un salón de clase.",
         category: "Accesorios",
-        location: "Bloque de Humanidades",
+        location: "Economía",
+        locationDetail: "Salón de clase, segundo piso",
         imageUrl: "/mocks/glasses.jpg",
+        eventDate: dateAgo(14),
         publishedAt: daysAgo(12),
+        status: "active",
+        isOwner: false,
+    },
+    {
+        id: "8",
+        type: "found",
+        title: "Cargador de portátil",
+        description: "Cargador de portátil negro con cable, encontrado conectado en una mesa.",
+        category: "Tecnología",
+        location: "Laboratorios",
+        locationDetail: "Sala de cómputo",
+        imageUrl: null,
+        eventDate: dateAgo(8),
+        publishedAt: daysAgo(7),
+        status: "recovered",
+        isOwner: true,
+    },
+    {
+        id: "9",
+        type: "lost",
+        title: "Termo azul",
+        description: "Termo de acero azul con calcomanías de la universidad.",
+        category: "Accesorios",
+        location: "Restaurante",
+        locationDetail: "Mesa cerca de la ventana",
+        imageUrl: null,
+        eventDate: dateAgo(3),
+        publishedAt: daysAgo(2),
+        status: "active",
+        isOwner: true,
+    },
+    {
+        id: "10",
+        type: "found",
+        title: "Chaqueta negra",
+        description: "Chaqueta negra con capucha, encontrada sobre una silla.",
+        category: "Ropa",
+        location: "Ágoras",
+        locationDetail: "Graderías",
+        imageUrl: null,
+        eventDate: dateAgo(12),
+        publishedAt: daysAgo(11),
+        status: "recovered",
+        isOwner: true,
     },
 ];
 
@@ -87,13 +163,7 @@ export const contactsMock: Record<string, PrivateContact> = {
     "5": { publishedBy: "M**** T*****", whatsapp: null, email: "maria.t@usco.edu.co" },
     "6": { publishedBy: "S****** V****", whatsapp: "+573112223344", email: "santiago.v@usco.edu.co" },
     "7": { publishedBy: "L**** P****", whatsapp: "+573157778899", email: "laura.pd@usco.edu.co" },
+    "8": { publishedBy: "D***** H****", whatsapp: "+573101112233", email: "diana.h@usco.edu.co" },
+    "9": { publishedBy: "P***** N****", whatsapp: "+573144445566", email: "pedro.n@usco.edu.co" },
+    "10": { publishedBy: "V****** R****", whatsapp: null, email: "valeria.r@usco.edu.co" },
 };
-
-// Dummy counters, same shape the backend will return
-export const categorySummariesMock: CategorySummary[] = [
-    { category: "Tecnología", count: 18 },
-    { category: "Documentos", count: 12 },
-    { category: "Accesorios", count: 9 },
-    { category: "Otros", count: 7 },
-];
-

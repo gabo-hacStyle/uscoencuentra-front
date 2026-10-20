@@ -6,12 +6,13 @@ import { SignOutButton } from "@/components/auth/SignOutButton";
 import NavLinks from "@/components/layout/NavLinks";
 import NavbarSearch from "@/components/layout/NavbarSearch";
 import UserMenu from "@/components/layout/UserMenu";
+import { ADMIN_PATH, HOME_PATH, MY_REPORTS_PATH } from "@/lib/roles";
 
 // the catalog, so the admin panel needs its own path.
 const NAV_LINKS = [
-  { href: "/dashboard", label: "Inicio", adminOnly: false },
-  { href: "/mis-reportes", label: "Mis reportes", adminOnly: false },
-  { href: "/admin/dashboard", label: "Dashboard", adminOnly: true },
+  { href: HOME_PATH, label: "Inicio", adminOnly: false },
+  { href: MY_REPORTS_PATH, label: "Mis reportes", adminOnly: false },
+  { href: ADMIN_PATH, label: "Dashboard admin", adminOnly: true },
 ];
 
 interface NavbarProps {

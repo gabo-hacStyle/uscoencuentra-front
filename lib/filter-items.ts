@@ -65,7 +65,9 @@ export function filterItems(items: Item[], filters: ItemFilters): Item[] {
         .filter(
         (item) =>
             !query ||
-            normalize(`${item.title} ${item.category} ${item.location}`).includes(query),
+            normalize(
+            `${item.title} ${item.category} ${item.location} ${item.locationDetail ?? ""}`,
+            ).includes(query),
         )
         .sort((a, b) => {
         const diff = Date.parse(b.publishedAt) - Date.parse(a.publishedAt);
