@@ -1,11 +1,12 @@
 import Link from "next/link";
 import ReportItemButton from "@/components/items/ReportItemButton";
-import { IconChevronRight } from "@/components/ui/icons";
+import { IconChevronRight, IconDocument } from "@/components/ui/icons";
+import { MY_REPORTS_PATH } from "@/lib/roles";
 import { CATEGORY_CONFIG, formatPublicationCount } from "@/lib/item-categories";
 import type { CategorySummary } from "@/types/item";
 
-// TODO: change if the catalog moves to another route
-const CATALOG_PATH = "/dashboard";
+// Define the route used to browse objects by category.
+const CATALOG_PATH = "/home";
 
 interface ExploreSectionProps {
     categories: CategorySummary[]; // counters coming from the service
@@ -26,10 +27,19 @@ export default function ExploreSection({ categories }: ExploreSectionProps) {
                 ¿Qué estás buscando?
             </h2>
             </div>
-            <ReportItemButton />
+            <div className="flex flex-wrap items-center gap-3">
+                <Link
+                href={MY_REPORTS_PATH}
+                className="flex items-center gap-2 rounded-full border border-usco-line bg-white px-5 py-3 font-bold text-usco-wine shadow-sm transition hover:bg-usco-cream"
+                >
+                <IconDocument className="h-4 w-4" />
+                Mis reportes
+                </Link>
+                <ReportItemButton />
+            </div>
         </div>
 
-        <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {CATEGORY_CONFIG.map(({ category, icon: Icon }) => (
             <li key={category}>
                 {/* The category goes in the URL, like "q"; the catalog will read it later */}

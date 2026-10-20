@@ -1,31 +1,37 @@
+
 "use client";
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { IconUser } from "@/components/ui/icons";
-
-// TODO: confirm the profile route
-const PROFILE_PATH = "/perfil";
+import { PROFILE_PATH } from "@/lib/roles";
 
 export default function UserMenu({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Close the menu on outside click or Escape, only while it is open
+  // Close the menu when clicking outside or pressing Escape.
   useEffect(() => {
     if (!open) return;
 
     const handlePointerDown = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setOpen(false);
       }
     };
+
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
+
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
@@ -37,7 +43,7 @@ export default function UserMenu({ children }: { children: ReactNode }) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        aria-label="Menú de usuario"
+        aria-label="User menu"
         aria-haspopup="menu"
         aria-expanded={open}
         className="grid h-10 w-10 place-items-center rounded-full border border-usco-line bg-usco-sand text-usco-wine transition hover:bg-usco-sand/70"
@@ -58,8 +64,10 @@ export default function UserMenu({ children }: { children: ReactNode }) {
           >
             Mi perfil
           </Link>
+
           <div className="my-1 border-t border-usco-line" />
-          {/* Sign-out action, rendered by the server component and passed in as children */}
+
+          {/* Render the sign-out action provided by the parent component. */}
           {children}
         </div>
       )}

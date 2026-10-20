@@ -1,4 +1,5 @@
 import { CATEGORY_CONFIG } from "@/lib/item-categories";
+import { ITEM_LOCATIONS, type ItemLocation } from "@/lib/item-locations";
 import type { ItemCategory, ItemType } from "@/types/item";
 
 // Keep these in sync with the backend validation
@@ -7,8 +8,7 @@ export const LIMITS = {
     titleMax: 60,
     descriptionMin: 10,
     descriptionMax: 300,
-    locationMin: 3,
-    locationMax: 80,
+    locationDetailMax: 80,
     imageMaxBytes: 5 * 1024 * 1024, // 5 MB
 } as const;
 
@@ -19,7 +19,8 @@ export interface ReportValues {
     title: string;
     category: ItemCategory | ""; // "" = nothing selected yet
     description: string;
-    location: string;
+    location: ItemLocation | ""; // "" = nothing selected yet
+    locationDetail: string; // optional
     date: string; // YYYY-MM-DD, as returned by <input type="date">
     accepted: boolean; // privacy checkbox
 }
@@ -59,8 +60,14 @@ export function validateReport(values: ReportValues, today: string): ReportError
     );
     if (description) errors.description = description;
 
-    const location = checkLength(values.location, "El lugar", LIMITS.locationMin, LIMITS.locationMax);
-    if (location) errors.location = location;
+    if (!ITEM_LOCATIONS.some((place) => place === values.location)) {
+        errors.location = "Selecciona un lugar.";
+    }
+
+    // Optional: only the maximum length is checked
+    if (values.locationDetail.trim().length > LIMITS.locationDetailMax) {
+        errors.locationDetail = `La descripción del lugar no puede superar ${LIMITS.locationDetailMax} caracteres.`;
+    }
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(values.date)) {
         errors.date = "Indica la fecha.";

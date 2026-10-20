@@ -2,7 +2,7 @@
 
 import ItemImage from "@/components/items/ItemImage";
 import Modal from "@/components/ui/BaseModal";
-import { IconClose, IconHelp, IconLock, IconPin } from "@/components/ui/icons";
+import { IconClose, IconPin } from "@/components/ui/icons";
 import { formatPublishedDate } from "@/lib/item-format";
 import { ITEM_TEXTS } from "@/lib/item-texts";
 import type { Item } from "@/types/item";
@@ -57,37 +57,39 @@ export default function ItemDetailModal({ item, onClose, onContact }: ItemDetail
 
             <h2 className="text-3xl font-bold text-usco-ink">{item.title}</h2>
             <p className="text-usco-muted">{item.description}</p>
-
             <dl className="grid grid-cols-2 gap-4 border-y border-usco-line py-5">
                 <div>
-                <dt className={labelClassName}>Categoría</dt>
-                <dd className="mt-1 font-medium text-usco-ink">{item.category}</dd>
+                    <dt className={labelClassName}>Categoría</dt>
+                    <dd className="mt-1 font-medium text-usco-ink">{item.category}</dd>
                 </div>
                 <div>
-                <dt className={labelClassName}>Ubicación</dt>
-                <dd className="mt-1 flex items-center gap-1.5 font-medium text-usco-ink">
+                    <dt className={labelClassName}>Ubicación</dt>
+                    <dd className="mt-1 font-medium text-usco-ink">
+                    <span className="flex items-center gap-1.5">
                     <IconPin className="h-4 w-4 shrink-0 text-usco-wine" />
                     {item.location}
-                </dd>
+                    </span>
+                    {item.locationDetail && (
+                    <span className="mt-0.5 block pl-5.5 text-sm font-normal text-usco-muted">
+                    {item.locationDetail}
+                    </span>
+                    )}
+                    </dd>
                 </div>
             </dl>
 
-            <div className="flex items-start gap-3 rounded-2xl bg-usco-sand p-4 text-sm text-usco-ink">
-                <IconLock className="mt-0.5 h-5 w-5 shrink-0 text-usco-wine" />
-                <p>
-                La identidad y los datos de contacto solo se muestran al iniciar una
-                coordinación privada.
+            {item.isOwner ? (
+                <div className="rounded-2xl bg-usco-sand p-4 text-sm text-usco-ink">
+                <p className="font-bold">Este es tu reporte</p>
+                <p className="mt-1 text-usco-muted">
+                    Aquí ves cómo lo ve la comunidad.
                 </p>
-            </div>
-
-            <button
-                type="button"
-                onClick={onContact}
-                className="flex items-center justify-center gap-2 rounded-xl bg-usco-wine px-6 py-3 font-bold text-white transition hover:bg-usco-wine-dark"
-            >
-                <IconHelp className="h-4 w-4" />
-                Contactar de forma privada
-            </button>
+                </div>
+            ) : (
+                <>
+                {/* keep here, unchanged: the privacy box and the "Contactar de forma privada" button */}
+                </>
+            )}
             </div>
         </div>
         </Modal>

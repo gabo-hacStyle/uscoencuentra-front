@@ -167,3 +167,39 @@ export function IconCheck({ className }: IconProps) {
         </svg>
     );
 }
+
+export function IconKey({ className }: IconProps) {
+    return (
+        <svg {...svgProps} className={className}>
+        <circle cx="8" cy="15" r="4" />
+        <path d="m11 12 9-9M16 7l3 3M14 9l2 2" />
+        </svg>
+    );
+}
+
+export function IconShirt({ className }: IconProps) {
+    return (
+        <svg {...svgProps} className={className}>
+        <path d="M8 3 4 5 2 9l4 1.5V21h12V10.5L22 9l-2-4-4-2a4 4 0 0 1-8 0Z" />
+        </svg>
+    );
+}
+
+export function IconMore({ className }: IconProps) {
+    return (
+        <svg {...svgProps} className={className}>
+        <circle cx="5" cy="12" r="1" />
+        <circle cx="12" cy="12" r="1" />
+        <circle cx="19" cy="12" r="1" />
+        </svg>
+    );
+}
+
+export function IconEye({ className }: IconProps) {
+    return (
+        <svg {...svgProps} className={className}>
+        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+        <circle cx="12" cy="12" r="3" />
+        </svg>
+    );
+}

@@ -1,8 +1,20 @@
+import type { ItemLocation } from "@/lib/item-locations";
+
 // "lost": published by the owner. "found": published by the person who found it.
 export type ItemType = "lost" | "found";
 
-// Categories shown in the catalog.
-export type ItemCategory = "Tecnología" | "Documentos" | "Accesorios" | "Otros";
+// Categories shown in the catalog and in the report form.
+export type ItemCategory =
+    | "Tecnología"
+    | "Documentos"
+    | "Accesorios"
+    | "Llaves"
+    | "Ropa"
+    | "Otros";
+
+// active: visible and open ("Buscando"). in_verification: someone contacted the publisher.
+// recovered: delivered, case closed (hidden from the public catalog).
+export type ItemStatus = "active" | "in_verification" | "recovered";
 
 export interface Item {
     id: string;
@@ -10,9 +22,13 @@ export interface Item {
     title: string;
     description: string;
     category: ItemCategory; // typed, so a misspelled category fails at compile time
-    location: string;
-    imageUrl: string | null; // URL of the stored image, or null when the report has no photo
+    location: ItemLocation; // one of the campus places (lib/item-locations.ts)
+    locationDetail?: string | null; // optional free text, e.g. "salón 204, mesa junto a la ventana"
+    imageUrl: string | null; // public URL of the stored image (never base64), or null when there is no photo
+    eventDate: string; // YYYY-MM-DD: when it was lost or found
     publishedAt: string; // ISO 8601; the frontend formats it for display
+    status: ItemStatus;
+    isOwner: boolean; // computed by the backend from the token; the frontend cannot infer it
 }
 
 export interface PrivateContact {
@@ -33,7 +49,8 @@ export interface CreateItemInput {
     title: string;
     category: ItemCategory;
     description: string;
-    location: string;
+    location: ItemLocation; // one of the campus places (lib/item-locations.ts)
+    locationDetail: string | null; // optional; null when the user leaves it empty
     eventDate: string; // YYYY-MM-DD: when it was lost or found
     image: File | null; // optional; the backend stores it and returns the public URL
 }
