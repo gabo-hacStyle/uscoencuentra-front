@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { Alert } from "@/components/profile/Alert";
 import { ProfileView } from "@/components/profile/ProfileView";
 
 type ProfilePageProps = {
@@ -25,12 +24,6 @@ export function ProfilePage({ showForbiddenNotice = false }: ProfilePageProps) {
         </p>
         <h1 className="mt-2 text-3xl font-bold text-usco-ink sm:text-4xl">Mi perfil</h1>
       </header>
-
-      {showForbiddenNotice && (
-        <Alert variant="error" className="mb-6">
-          No tienes permisos para entrar a esa sección. Te llevamos a tu perfil.
-        </Alert>
-      )}
 
       {/* Mientras ProfileView consulta el perfil al backend se muestra el esqueleto. */}
       <Suspense fallback={<ProfileSkeleton />}>
