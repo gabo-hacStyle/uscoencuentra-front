@@ -9,6 +9,7 @@ interface ItemImageProps {
     alt: string;
     sizes: string;
     className?: string; // classes for the <Image> (e.g. hover effects)
+    compact?: boolean; // small placeholder (icon only) for thumbnails
 }
 
 // Only real URLs are valid: a local path ("/mocks/x.jpg") or an absolute http(s) URL.
@@ -27,7 +28,7 @@ function isUrlSrc(src: string | null): src is string {
 
 // Fills its parent, which must be "relative" and have a size.
 // Shows a placeholder when there is no image or when it fails to load.
-export default function ItemImage({ src, alt, sizes, className = "" }: ItemImageProps) {
+export default function ItemImage({ src, alt, sizes, className = "", compact = false }: ItemImageProps) {
     const [failed, setFailed] = useState(false);
 
     if (!isUrlSrc(src) || failed) {
@@ -37,8 +38,8 @@ export default function ItemImage({ src, alt, sizes, className = "" }: ItemImage
             aria-label={`${alt} (sin foto)`}
             className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-usco-sand text-usco-muted"
         >
-            <IconImage className="h-10 w-10" />
-            <span className="text-xs font-medium">Sin foto</span>
+            <IconImage className={compact ? "h-6 w-6" : "h-10 w-10"} />
+            {!compact && <span className="text-xs font-medium">Sin foto</span>}
         </div>
         );
     }

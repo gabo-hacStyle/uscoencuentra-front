@@ -1,5 +1,12 @@
 import type { ComponentType } from "react";
-import { IconBox, IconCube, IconDocument, IconLaptop } from "@/components/ui/icons";
+import {
+    IconBox,
+    IconCube,
+    IconDocument,
+    IconKey,
+    IconLaptop,
+    IconShirt,
+} from "@/components/ui/icons";
 import type { ItemCategory } from "@/types/item";
 
 // Display order and icon of each category card.
@@ -11,6 +18,8 @@ export const CATEGORY_CONFIG: {
     { category: "Tecnología", icon: IconLaptop },
     { category: "Documentos", icon: IconDocument },
     { category: "Accesorios", icon: IconBox },
+    { category: "Llaves", icon: IconKey },
+    { category: "Ropa", icon: IconShirt },
     { category: "Otros", icon: IconCube },
 ];
 
