@@ -203,3 +203,12 @@ export function IconEye({ className }: IconProps) {
         </svg>
     );
 }
+
+export function IconCheckCircle({ className }: IconProps) {
+    return (
+        <svg {...svgProps} className={className}>
+        <circle cx="12" cy="12" r="9" />
+        <path d="m8.5 12.5 2.5 2.5 4.5-5" />
+        </svg>
+    );
+}

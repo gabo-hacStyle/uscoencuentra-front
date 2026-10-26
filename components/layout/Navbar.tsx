@@ -12,7 +12,7 @@ import { ADMIN_PATH, HOME_PATH, MY_REPORTS_PATH } from "@/lib/roles";
 const NAV_LINKS = [
   { href: HOME_PATH, label: "Inicio", adminOnly: false },
   { href: MY_REPORTS_PATH, label: "Mis reportes", adminOnly: false },
-  { href: ADMIN_PATH, label: "Dashboard admin", adminOnly: true },
+  { href: ADMIN_PATH, label: "Dashboard", adminOnly: true },
 ];
 
 interface NavbarProps {
