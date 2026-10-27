@@ -39,7 +39,7 @@ export default async function Navbar({ heroSearchId }: NavbarProps) {
     <header className="sticky top-0 z-40 border-b border-usco-line bg-usco-cream/90 backdrop-blur">
       {/* On mobile the search wraps to its own row; on md+ everything sits in one row */}
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 px-4 py-3 md:flex-nowrap md:gap-x-6 md:px-6">
-        <Link href="/dashboard" aria-label="Ir al inicio" className="shrink-0">
+        <Link href={HOME_PATH} aria-label="Ir al inicio" className="shrink-0">
           <BrandLogo />
         </Link>
         
