@@ -2,17 +2,12 @@
 
 import { useState } from "react";
 import ContactFlow from "@/components/items/ItemContactFlow";
+import ManageStatusModal from "@/components/items/ManageStatusModal";
 import MyReportCard from "@/components/items/MyReportCard";
 import ReportItemButton from "@/components/items/ReportItemButton";
-import type { Item, ItemStatus } from "@/types/item";
+import type { Item } from "@/types/item";
 
 type Tab = "active" | "history";
-
-const SUMMARY: { status: ItemStatus; label: string }[] = [
-    { status: "active", label: "Reportes activos" },
-    { status: "in_verification", label: "En verificación" },
-    { status: "recovered", label: "Entregados" },
-];
 
 const TABS: { value: Tab; label: string }[] = [
     { value: "active", label: "Reportes activos" },
@@ -20,37 +15,51 @@ const TABS: { value: Tab; label: string }[] = [
 ];
 
 interface MyReportsViewProps {
-    items: Item[]; // all the reports of the user, newest first
+    active: Item[]; // open reports (status "active" or "in_verification"), newest first
+    history: Item[]; // closed reports; the backend decides which ones, newest first
 }
 
-export default function MyReportsView({ items }: MyReportsViewProps) {
+export default function MyReportsView({ active, history }: MyReportsViewProps) {
     const [tab, setTab] = useState<Tab>("active");
     const [detailItem, setDetailItem] = useState<Item | null>(null);
+    const [managedItem, setManagedItem] = useState<Item | null>(null);
 
-    const counts: Record<ItemStatus, number> = {
-        active: items.filter((item) => item.status === "active").length,
-        in_verification: items.filter((item) => item.status === "in_verification").length,
-        recovered: items.filter((item) => item.status === "recovered").length,
-    };
+    // Local copies so the lists update right after the user answers the modal
+    const [activeItems, setActiveItems] = useState(active);
+    const [historyItems, setHistoryItems] = useState(history);
 
-    // "Reportes activos": still open (including those in verification). "Historial": delivered.
-    const visible =
-        tab === "active"
-        ? items.filter((item) => item.status !== "recovered")
-        : items.filter((item) => item.status === "recovered");
+    const summary = [
+        { label: "Reportes activos", count: activeItems.filter((item) => item.status === "active").length },
+        { label: "En verificación", count: activeItems.filter((item) => item.status === "in_verification").length },
+        { label: "En el historial", count: historyItems.length },
+    ];
 
-    const emptyTitle =
-        items.length === 0
+    const visible = tab === "active" ? activeItems : historyItems;
+    const hasReports = activeItems.length + historyItems.length > 0;
+
+    const emptyTitle = !hasReports
         ? "Aún no has publicado reportes"
         : tab === "active"
             ? "No tienes reportes activos"
-            : "Aún no hay reportes entregados";
-    const emptyHint =
-        items.length === 0
+            : "Aún no hay reportes en el historial";
+    const emptyHint = !hasReports
         ? "Publica el primero con el botón «Nuevo reporte»."
         : tab === "active"
-            ? "Tus reportes entregados están en el Historial."
-            : "Cuando un reporte se entregue, aparecerá aquí.";
+            ? "Tus reportes cerrados están en el Historial."
+            : "Cuando cierres un reporte, aparecerá aquí.";
+
+    function handleResolved(item: Item, resolved: boolean) {
+        if (resolved) {
+            // "Sí": leaves the active list and goes to the top of the history
+            setActiveItems((prev) => prev.filter((current) => current.id !== item.id));
+            setHistoryItems((prev) => [item, ...prev]);
+        } else {
+            // "No": stays visible and goes back from "in_verification" to "active" ("Buscando")
+            setActiveItems((prev) =>
+                prev.map((current) => (current.id === item.id ? { ...current, status: "active" } : current)),
+            );
+        }
+    }
 
     return (
         <>
@@ -64,10 +73,10 @@ export default function MyReportsView({ items }: MyReportsViewProps) {
         </header>
 
         <ul className="mt-8 grid gap-4 sm:grid-cols-3">
-            {SUMMARY.map(({ status, label }) => (
-            <li key={status} className="rounded-3xl border border-usco-line bg-white p-6">
+            {summary.map(({ label, count }) => (
+            <li key={label} className="rounded-3xl border border-usco-line bg-white p-6">
                 <span className="block text-sm text-usco-muted">{label}</span>
-                <span className="mt-3 block text-4xl font-bold text-usco-ink">{counts[status]}</span>
+                <span className="mt-3 block text-4xl font-bold text-usco-ink">{count}</span>
             </li>
             ))}
         </ul>
@@ -107,8 +116,13 @@ export default function MyReportsView({ items }: MyReportsViewProps) {
             <ul className="grid gap-5 md:grid-cols-2">
                 {visible.map((item) => (
                 <li key={item.id}>
-                {/* TODO(teammate): pass onManage here to open the "delivered / failed" modal */}
-                <MyReportCard item={item} onView={setDetailItem} />
+                    {/* Closed reports (history) cannot be managed again, so no onSelect there */}
+                    <MyReportCard
+                        item={item}
+                        onView={setDetailItem}
+                        onManage={tab === "active" ? setManagedItem : undefined}
+                        isClosed={tab === "history"}
+                    />
                 </li>
                 ))}
             </ul>
@@ -117,6 +131,15 @@ export default function MyReportsView({ items }: MyReportsViewProps) {
 
         {detailItem && (
             <ContactFlow key={detailItem.id} item={detailItem} onClose={() => setDetailItem(null)} />
+        )}
+
+        {managedItem && (
+            <ManageStatusModal
+                key={managedItem.id}
+                item={managedItem}
+                onClose={() => setManagedItem(null)}
+                onResolved={handleResolved}
+            />
         )}
         </>
     );
