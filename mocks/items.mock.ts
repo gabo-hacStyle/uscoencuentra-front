@@ -11,7 +11,8 @@ const dateAgo = (days: number) =>
     );
 
 // isOwner is SIMULATED: items 3, 5, 8, 9 and 10 behave as "yours".
-export const itemsMock: Item[] = [
+type MockItem = Item & { closed?: boolean }; // "closed" simulates the backend's logical state
+export const itemsMock: MockItem[] = [
     {
         id: "1",
         type: "found",
@@ -121,7 +122,8 @@ export const itemsMock: Item[] = [
         imageUrl: null,
         eventDate: dateAgo(8),
         publishedAt: daysAgo(7),
-        status: "recovered",
+        status: "active",
+        closed: true,
         isOwner: true,
     },
     {
@@ -149,14 +151,15 @@ export const itemsMock: Item[] = [
         imageUrl: null,
         eventDate: dateAgo(12),
         publishedAt: daysAgo(11),
-        status: "recovered",
+        status: "active",
+        closed: true,
         isOwner: true,
     },
 ];
 
 // One contact per item id. Item "5" has no WhatsApp, to test that case.
 export const contactsMock: Record<string, PrivateContact> = {
-    "1": { publishedBy: "A*** M******", whatsapp: "+573105554821", email: "ana.m@usco.edu.co" },
+    "1": { publishedBy: "A*** M******", whatsapp: null, email: "ana.m@usco.edu.co" },
     "2": { publishedBy: "C***** R****", whatsapp: "+573001234567", email: "carlos.r@usco.edu.co" },
     "3": { publishedBy: "L**** P****", whatsapp: "+573157778899", email: "laura.p@usco.edu.co" },
     "4": { publishedBy: "J**** G*****", whatsapp: "+573204445566", email: "juan.g@usco.edu.co" },
