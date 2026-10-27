@@ -107,8 +107,8 @@ export default function MyReportsView({ items }: MyReportsViewProps) {
             <ul className="grid gap-5 md:grid-cols-2">
                 {visible.map((item) => (
                 <li key={item.id}>
-                    {/* TODO(teammate): pass onSelect here to open the "delivered / failed" modal */}
-                    <MyReportCard item={item} onView={setDetailItem} />
+                {/* TODO(teammate): pass onManage here to open the "delivered / failed" modal */}
+                <MyReportCard item={item} onView={setDetailItem} />
                 </li>
                 ))}
             </ul>
