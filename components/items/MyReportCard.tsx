@@ -6,14 +6,15 @@ import type { Item } from "@/types/item";
 
 interface MyReportCardProps {
     item: Item;
-    onView: (item: Item) => void; // "Ver detalles": opens the item detail
-    onManage?: (item: Item) => void; // "Gestionar estado": reserved for the delivered / failed modal
+    isClosed?: boolean; // history card: the status badge is hidden because the report is completed
+    onView: (item: Item) => void;
+    onManage?: (item: Item) => void;
 }
 
-export default function MyReportCard({ item, onView, onManage }: MyReportCardProps) {
+export default function MyReportCard({ item, isClosed = false, onView, onManage }: MyReportCardProps) {
     const texts = ITEM_TEXTS[item.type];
-    // A delivered report is closed: there is no state left to manage
-    const canManage = item.status !== "recovered";
+    // Closed reports live in the history and have no state left to manage
+    const canManage = Boolean(onManage);
 
     return (
         <article className="rounded-3xl border border-usco-line bg-white p-4">
@@ -36,7 +37,7 @@ export default function MyReportCard({ item, onView, onManage }: MyReportCardPro
             >
             {texts.badgeLabel}
             </span>
-            <ItemStatusBadge status={item.status} showActive />
+            {!isClosed && <ItemStatusBadge status={item.status} showActive />}
         </div>
 
         <div className="mt-4 flex gap-3 border-t border-usco-line pt-4">
@@ -53,8 +54,6 @@ export default function MyReportCard({ item, onView, onManage }: MyReportCardPro
             {canManage && (
             <button
                 type="button"
-                disabled={!onManage}
-                title={onManage ? undefined : "Disponible pronto"}
                 onClick={() => onManage?.(item)}
                 aria-label={`Gestionar estado de ${item.title}`}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-usco-wine px-4 py-3 text-sm font-bold text-white transition hover:bg-usco-wine-dark disabled:cursor-not-allowed disabled:opacity-50"

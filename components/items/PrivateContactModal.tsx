@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Modal from "@/components/ui/BaseModal";
 import { IconClose } from "@/components/ui/icons";
 import { contactPublisher } from "@/lib/contact-links";
 import { formatPhone } from "@/lib/item-format";
 import { ITEM_TEXTS } from "@/lib/item-texts";
-import { getPrivateContact } from "@/services/items.service";
+import { getPrivateContact, startVerification } from "@/services/items.service";
 import type { Item, PrivateContact } from "@/types/item";
 
 type ContactState =
@@ -30,11 +30,30 @@ function InfoField({ label, value }: { label: string; value: string }) {
     );
 }
 
+
 export default function PrivateContactModal({ item, onClose }: PrivateContactModalProps) {
     const texts = ITEM_TEXTS[item.type];
     const [state, setState] = useState<ContactState>({ status: "loading" });
 
+    const verificationRequested = useRef(false); // avoids sending the request twice per open modal
+
+    function handleAction() {
+        if (state.status !== "ready") return;
+
+        contactPublisher(item, state.contact); // opens Gmail/WhatsApp first, inside the click
+
+        // Only a report still in "Buscando" starts a verification
+        if (item.status !== "active" || verificationRequested.current) return;
+
+        verificationRequested.current = true;
+
+        startVerification(item.id).catch(() => {
+            verificationRequested.current = false; // the contact already opened; allow a retry
+        });
+    }
+
     useEffect(() => {
+
         let cancelled = false;
         getPrivateContact(item.id)
         .then((contact) => {
@@ -99,9 +118,7 @@ export default function PrivateContactModal({ item, onClose }: PrivateContactMod
             <button
                 type="button"
                 disabled={state.status !== "ready"}
-                onClick={() => {
-                if (state.status === "ready") contactPublisher(item, state.contact);
-                }}
+                onClick={handleAction}
                 className="rounded-full bg-usco-wine px-5 py-2.5 font-bold text-white transition hover:bg-usco-wine-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
                 {texts.actionLabel}

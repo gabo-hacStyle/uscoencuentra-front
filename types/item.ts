@@ -13,8 +13,14 @@ export type ItemCategory =
     | "Otros";
 
 // active: visible and open ("Buscando"). in_verification: someone contacted the publisher.
-// recovered: delivered, case closed (hidden from the public catalog).
-export type ItemStatus = "active" | "in_verification" | "recovered";
+// The closed state only exists in the backend; the frontend receives it as the history list.
+export type ItemStatus = "active" | "in_verification";
+
+// What the backend returns for "Mis reportes"
+export interface MyItems {
+    active: Item[];
+    history: Item[];
+}
 
 export interface Item {
     id: string;
