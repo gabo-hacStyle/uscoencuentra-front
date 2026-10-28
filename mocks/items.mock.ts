@@ -157,16 +157,19 @@ export const itemsMock: MockItem[] = [
     },
 ];
 
-// One contact per item id. Item "5" has no WhatsApp, to test that case.
-export const contactsMock: Record<string, PrivateContact> = {
-    "1": { publishedBy: "A*** M******", whatsapp: null, email: "ana.m@usco.edu.co" },
-    "2": { publishedBy: "C***** R****", whatsapp: "+573001234567", email: "carlos.r@usco.edu.co" },
-    "3": { publishedBy: "L**** P****", whatsapp: "+573157778899", email: "laura.p@usco.edu.co" },
-    "4": { publishedBy: "J**** G*****", whatsapp: "+573204445566", email: "juan.g@usco.edu.co" },
-    "5": { publishedBy: "M**** T*****", whatsapp: null, email: "maria.t@usco.edu.co" },
-    "6": { publishedBy: "S****** V****", whatsapp: "+573112223344", email: "santiago.v@usco.edu.co" },
-    "7": { publishedBy: "L**** P****", whatsapp: "+573157778899", email: "laura.pd@usco.edu.co" },
-    "8": { publishedBy: "D***** H****", whatsapp: "+573101112233", email: "diana.h@usco.edu.co" },
-    "9": { publishedBy: "P***** N****", whatsapp: "+573144445566", email: "pedro.n@usco.edu.co" },
-    "10": { publishedBy: "V****** R****", whatsapp: null, email: "valeria.r@usco.edu.co" },
+// Publisher of each item id (simulated item -> author relation). "whatsapp" is not stored here: the
+// mock of GET /items/:id/contact derives it from the publisher's profile (mocks/profiles.mock.ts):
+// their "numero" only when shareWhatsAppNumber is true.
+// Server-side only (services/contact.service.ts, admin mock source): never import it in a client component.
+export const contactsMock: Record<string, Omit<PrivateContact, "whatsapp">> = {
+    "1": { publishedBy: "A*** M******", email: "ana.m@usco.edu.co" },
+    "2": { publishedBy: "C***** R****", email: "carlos.r@usco.edu.co" },
+    "3": { publishedBy: "L**** P****", email: "laura.p@usco.edu.co" },
+    "4": { publishedBy: "J**** G*****", email: "juan.g@usco.edu.co" },
+    "5": { publishedBy: "M**** T*****", email: "maria.t@usco.edu.co" },
+    "6": { publishedBy: "S****** V****", email: "santiago.v@usco.edu.co" },
+    "7": { publishedBy: "L**** P****", email: "laura.pd@usco.edu.co" },
+    "8": { publishedBy: "D***** H****", email: "diana.h@usco.edu.co" },
+    "9": { publishedBy: "P***** N****", email: "pedro.n@usco.edu.co" },
+    "10": { publishedBy: "V****** R****", email: "valeria.r@usco.edu.co" },
 };
