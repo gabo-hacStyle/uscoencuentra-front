@@ -58,7 +58,6 @@ export async function ProfileView() {
           <PersonalData
             name={name}
             email={email}
-            role={roleLabel}
             numero={profile?.numero ?? null}
             loadError={loadError}
           />
