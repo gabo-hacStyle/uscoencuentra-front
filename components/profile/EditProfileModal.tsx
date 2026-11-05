@@ -8,7 +8,6 @@ import { toNationalDigits, validateColombianPhone } from "@/lib/phone";
 type EditProfileModalProps = {
   name: string;
   email: string;
-  role: string;
   numero: string | null;
   onClose: () => void;
   onSaved: (numero: string | null) => void;
@@ -17,7 +16,7 @@ type EditProfileModalProps = {
 const FOCUS =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-usco-wine";
 
-export function EditProfileModal({ name, email, role, numero, onClose, onSaved }: EditProfileModalProps) {
+export function EditProfileModal({ name, email, numero, onClose, onSaved }: EditProfileModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   //muestra el número NACIONAL; el +57 no se escribe (se agrega al enviar).
   const [value, setValue] = useState(numero ? toNationalDigits(numero) : "");
@@ -87,10 +86,6 @@ export function EditProfileModal({ name, email, role, numero, onClose, onSaved }
             <div>
               <dt className="text-usco-muted">Correo institucional</dt>
               <dd className="break-all font-semibold">{email}</dd>
-            </div>
-            <div>
-              <dt className="text-usco-muted">Rol</dt>
-              <dd className="font-semibold">{role}</dd>
             </div>
           </dl>
           <p className="mt-2 text-xs text-usco-muted">

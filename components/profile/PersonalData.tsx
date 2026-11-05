@@ -8,7 +8,6 @@ import { formatPhone } from "@/lib/item-format";
 type PersonalDataProps = {
   name: string;
   email: string;
-  role: string;
   numero: string | null;
   loadError: string | null;
 };
@@ -16,7 +15,7 @@ type PersonalDataProps = {
 const FOCUS =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-usco-wine";
 
-export function PersonalData({ name, email, role, numero, loadError }: PersonalDataProps) {
+export function PersonalData({ name, email, numero, loadError }: PersonalDataProps) {
   const [currentNumero, setCurrentNumero] = useState(numero);
   const [isEditing, setIsEditing] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
@@ -93,7 +92,6 @@ export function PersonalData({ name, email, role, numero, loadError }: PersonalD
         <EditProfileModal
           name={name}
           email={email}
-          role={role}
           numero={currentNumero}
           onClose={() => setIsEditing(false)}
           onSaved={(savedNumero) => {

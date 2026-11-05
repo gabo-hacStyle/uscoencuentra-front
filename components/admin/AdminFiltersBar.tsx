@@ -2,53 +2,16 @@
 
 import type { AdminFilterOptions, AdminSummaryFilters, FilterOption } from "@/types/admin";
 import { PERIOD_OPTIONS, isReportPeriod } from "@/lib/admin-filters";
-import { CalendarIcon, ChevronDownIcon, MapPinIcon, TagIcon, type IconProps } from "./admin-icons";
+import { AdminFilterSelect } from "./AdminFilterSelect";
+import { CalendarIcon, MapPinIcon, TagIcon } from "./admin-icons";
 
 /**
  * Period / location / category selectors shared by Summary and Reports.
- * Native <select> elements: keyboard, screen reader and touch friendly on every device.
+ * Each selector is an accessible custom listbox (AdminFilterSelect) that stays inside the viewport.
  *
  * Layout: stacked on phones, 2 columns from sm (also at lg, where the side card leaves ~700 px),
  * and one row (3 equal selects + clear button) from xl.
  */
-
-type FilterSelectProps = {
-    id: string;
-    label: string;
-    Icon: (props: IconProps) => React.JSX.Element;
-    value: string;
-    isActive: boolean;
-    options: ReadonlyArray<FilterOption>;
-    onChange: (value: string) => void;
-    disabled?: boolean;
-};
-
-function FilterSelect({ id, label, Icon, value, isActive, options, onChange, disabled }: FilterSelectProps) {
-    return (
-        <div className="relative min-w-0">
-            <label htmlFor={id} className="sr-only">
-                {label}
-            </label>
-            <Icon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-usco-wine" />
-            <select
-                id={id}
-                value={value}
-                disabled={disabled}
-                onChange={(event) => onChange(event.target.value)}
-                className={`h-11 w-full cursor-pointer appearance-none truncate rounded-full border bg-white pl-10 pr-10 text-sm font-medium text-usco-ink shadow-sm transition-colors hover:border-usco-wine/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-usco-wine/40 disabled:cursor-not-allowed disabled:opacity-60 ${
-                    isActive ? "border-usco-wine/50 bg-usco-wine/5" : "border-usco-line"
-                }`}
-            >
-                {options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                        {option.label}
-                    </option>
-                ))}
-            </select>
-            <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-usco-muted" />
-        </div>
-    );
-}
 
 const ALL_VALUE = "";
 const ALL_LOCATIONS: FilterOption = { value: ALL_VALUE, label: "Todos los lugares" };
@@ -72,7 +35,7 @@ export function AdminFiltersBar({ idPrefix, value, options, onChange, onClear, d
     return (
         <div className="space-y-2">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,1fr))_auto]">
-                <FilterSelect
+                <AdminFilterSelect
                     id={`${idPrefix}-period`}
                     label="Periodo de publicación"
                     Icon={CalendarIcon}
@@ -84,7 +47,7 @@ export function AdminFiltersBar({ idPrefix, value, options, onChange, onClear, d
                         if (isReportPeriod(next)) onChange({ ...value, period: next });
                     }}
                 />
-                <FilterSelect
+                <AdminFilterSelect
                     id={`${idPrefix}-location`}
                     label="Lugar"
                     Icon={MapPinIcon}
@@ -94,7 +57,7 @@ export function AdminFiltersBar({ idPrefix, value, options, onChange, onClear, d
                     disabled={disabled || catalogUnavailable}
                     onChange={(next) => onChange({ ...value, location: next === ALL_VALUE ? null : next })}
                 />
-                <FilterSelect
+                <AdminFilterSelect
                     id={`${idPrefix}-category`}
                     label="Categoría"
                     Icon={TagIcon}
