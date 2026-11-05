@@ -65,7 +65,7 @@ export async function ProfileView() {
         </div>
       </section>
 
-      <PrivacyCard />
+      <PrivacyCard shareWhatsAppNumber={profile?.shareWhatsAppNumber ?? false} disabled={profile === null} />
     </div>
   );
 }

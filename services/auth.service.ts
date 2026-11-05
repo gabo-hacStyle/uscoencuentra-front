@@ -22,7 +22,7 @@ export class BackendAuthError extends Error {
 /** SOLO DESARROLLO: permite probar la interfaz sin backend. */
 export function isMockBackendEnabled(): boolean {
   return (
-    process.env.MOCK_BACKEND === "true" && process.env.NODE_ENV !== "production"
+    process.env.MOCK_BACKEND === "true" 
   );
 }
 

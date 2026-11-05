@@ -70,9 +70,13 @@ export default function ItemDetailModal({ item, onClose, onContact }: ItemDetail
                     <IconPin className="h-4 w-4 shrink-0 text-usco-wine" />
                     {item.location}
                 </dd>
+                {item.locationDetail && (
+                <dd className="mt-1 pl-5.5 text-sm text-usco-muted">{item.locationDetail}</dd>
+                )}
                 </div>
             </dl>
-
+        {!item.isOwner && (
+            <>
             <div className="flex items-start gap-3 rounded-2xl bg-usco-sand p-4 text-sm text-usco-ink">
                 <IconLock className="mt-0.5 h-5 w-5 shrink-0 text-usco-wine" />
                 <p>
@@ -89,7 +93,9 @@ export default function ItemDetailModal({ item, onClose, onContact }: ItemDetail
                 <IconHelp className="h-4 w-4" />
                 Contactar de forma privada
             </button>
-            </div>
+            </>
+        )}
+        </div>
         </div>
         </Modal>
     );
