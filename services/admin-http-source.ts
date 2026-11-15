@@ -16,15 +16,18 @@ import { buildReportsQuery, buildSummaryQuery } from "@/lib/admin-filters";
 import { ADMIN_ERROR_MESSAGES, createApiError, type AdminDataSource } from "./admin-data-source";
 
 /**
- * HTTP data source: calls the endpoints PROPOSED in docs/admin-api-contract.md.
- * None of them is confirmed as implemented yet; admin.service.ts only selects this source when
- * ADMIN_DATA_SOURCE=http. Every response is validated: a body that does not follow the contract
- * becomes INVALID_RESPONSE and the UI shows an error, never partial or invented data.
+ * HTTP data source: calls the backend admin endpoints of the final contract (README.md,
+ * "Módulo de administración"). admin.service.ts selects it whenever MOCK_BACKEND is off.
+ * Every response is validated: a body that does not follow the contract becomes
+ * INVALID_RESPONSE and the UI shows an error, never partial or invented data.
  */
 
-/** Relative to API_URL (same base and style as POST /auth/google and /profile). Pending backend confirmation. */
+/**
+ * Contract paths WITHOUT the "/api" prefix: the shared client (lib/backend/config.ts) adds it,
+ * so `/admin/filters` is requested as `{API_URL}/api/admin/filters`.
+ */
 export const ADMIN_API_PATHS = {
-    health: "/health",
+    health: "/health", // public: sent without Bearer
     filters: "/admin/filters",
     globalMetrics: "/admin/dashboard/global-metrics",
     analytics: "/admin/dashboard/analytics",
@@ -32,8 +35,16 @@ export const ADMIN_API_PATHS = {
     report: (id: string) => `/admin/reports/${encodeURIComponent(id)}`,
 } as const;
 
-/** Adds the base URL and the session token. Implemented in admin.service.ts. */
-export type AdminFetcher = (path: string, init: RequestInit) => Promise<Response>;
+export type AdminRequest = {
+    method: "GET" | "DELETE";
+    /** true: sends the session's backend token as Bearer. */
+    authenticated: boolean;
+};
+
+/** Adds the base URL, the "/api" prefix and (when authenticated) the token. Implemented in admin.service.ts. */
+export type AdminFetcher = (path: string, request: AdminRequest) => Promise<Response>;
+
+const AUTHENTICATED_GET: AdminRequest = { method: "GET", authenticated: true };
 
 const ERROR_CODES = Object.keys(ADMIN_ERROR_MESSAGES) as ApiErrorCode[];
 
@@ -66,13 +77,37 @@ async function toHttpError(response: Response): Promise<ApiError> {
     return createApiError(code, response.status);
 }
 
-async function send(fetcher: AdminFetcher, path: string, init: RequestInit): Promise<Response | ApiError> {
+async function send(fetcher: AdminFetcher, path: string, request: AdminRequest): Promise<Response | ApiError> {
     try {
-        return await fetcher(path, init);
-    } catch {
-        // No answer at all: connection refused, DNS, timeout...
+        return await fetcher(path, request);
+    } catch (error) {
+        // No answer at all: connection refused, DNS, timeout... (or a missing API_URL in production)
+        console.error(`[admin] Sin respuesta del backend en ${routeOf(path)}:`, error instanceof Error ? error.message : error);
         return createApiError("NETWORK_ERROR");
     }
+}
+
+/** Path without the query string: `search` may contain an email typed by the admin. */
+function routeOf(path: string): string {
+    return path.split("?")[0];
+}
+
+/**
+ * Server-side diagnostic for INVALID_RESPONSE: logs the SHAPE of the body (keys and types),
+ * never its values (reports contain emails), so a contract mismatch is easy to spot.
+ */
+function describeShape(value: unknown): string {
+    const typeOf = (entry: unknown) => (entry === null ? "null" : Array.isArray(entry) ? "array" : typeof entry);
+    if (!isRecord(value) || Array.isArray(value)) return typeOf(value);
+    const fields = Object.entries(value).map(([key, entry]) => `${key}:${typeOf(entry)}`);
+    const firstItem = Array.isArray(value.items) ? value.items[0] : undefined;
+    if (isRecord(firstItem)) fields.push(`items[0]={${describeShape(firstItem)}}`);
+    return fields.join(", ");
+}
+
+function invalidResponse(path: string, body: unknown): ApiError {
+    console.error(`[admin] Respuesta fuera de contrato en ${routeOf(path)}: ${describeShape(body)}`);
+    return createApiError("INVALID_RESPONSE");
 }
 
 // ---------- Response validation ----------
@@ -175,11 +210,11 @@ async function getJson<T>(
     path: string,
     isValid: (value: unknown) => value is T,
 ): Promise<ApiResult<T>> {
-    const response = await send(fetcher, path, { method: "GET" });
+    const response = await send(fetcher, path, AUTHENTICATED_GET);
     if (!(response instanceof Response)) return { ok: false, error: response };
     if (!response.ok) return { ok: false, error: await toHttpError(response) };
     const body = await readJson(response);
-    return isValid(body) ? { ok: true, data: body } : { ok: false, error: createApiError("INVALID_RESPONSE") };
+    return isValid(body) ? { ok: true, data: body } : { ok: false, error: invalidResponse(path, body) };
 }
 
 function withQuery(path: string, query: string): string {
@@ -189,7 +224,8 @@ function withQuery(path: string, query: string): string {
 export function createHttpAdminDataSource(fetcher: AdminFetcher): AdminDataSource {
     return {
         async getHealthStatus() {
-            const response = await send(fetcher, ADMIN_API_PATHS.health, { method: "GET" });
+            // Public endpoint: no Bearer token is sent
+            const response = await send(fetcher, ADMIN_API_PATHS.health, { method: "GET", authenticated: false });
             if (!(response instanceof Response)) return { ok: false, error: response };
             // 503 with a valid body is a legitimate "unavailable" answer, not a query error
             const body = await readJson(response);
@@ -197,7 +233,7 @@ export function createHttpAdminDataSource(fetcher: AdminFetcher): AdminDataSourc
             return {
                 ok: false,
                 error: response.ok
-                    ? createApiError("INVALID_RESPONSE")
+                    ? invalidResponse(ADMIN_API_PATHS.health, body)
                     : createApiError(codeFromStatus(response.status), response.status),
             };
         },
@@ -219,10 +255,10 @@ export function createHttpAdminDataSource(fetcher: AdminFetcher): AdminDataSourc
         },
 
         async deleteReport(id) {
-            const response = await send(fetcher, ADMIN_API_PATHS.report(id), { method: "DELETE" });
+            const response = await send(fetcher, ADMIN_API_PATHS.report(id), { method: "DELETE", authenticated: true });
             if (!(response instanceof Response)) return { ok: false, error: response };
             if (!response.ok) return { ok: false, error: await toHttpError(response) };
-            // 200 { id, deleted: true } or 204 without body: both mean the report is gone
+            // Contract: 200 { id, deleted: true } (logical deletion). A 204 without body is also accepted.
             return { ok: true, data: { id, deleted: true } };
         },
     };

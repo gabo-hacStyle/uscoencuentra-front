@@ -13,7 +13,7 @@ import { fetchAdminAnalyticsAction, fetchAdminGlobalMetricsAction } from "@/acti
 import { DEFAULT_SUMMARY_FILTERS, hasActiveSummaryFilters, isSameSummaryFilters } from "@/lib/admin-filters";
 import { buildKpis, buildReunionRate, buildShareRows } from "@/lib/admin-metrics";
 import { AdminFiltersBar } from "./AdminFiltersBar";
-import { ErrorNotice } from "./AdminFeedback";
+import { ErrorNotice, isSessionExpired } from "./AdminFeedback";
 import { ChartsSkeleton, KpiGrid, KpiSkeleton, RankingCard, ReunionRateCard } from "./AdminSummaryCards";
 
 type AdminSummarySectionProps = {
@@ -95,6 +95,7 @@ export function AdminSummarySection({
                         title="No se pudieron cargar los totales generales."
                         message="Revisa tu conexión e inténtalo de nuevo."
                         onRetry={() => void retryGlobalMetrics()}
+                        sessionExpired={isSessionExpired(globalResult)}
                     />
                 ) : null}
             </section>
@@ -132,6 +133,7 @@ export function AdminSummarySection({
                         title="No se pudo cargar el análisis."
                         message="Revisa tu conexión e inténtalo de nuevo."
                         onRetry={retryAnalytics}
+                        sessionExpired={isSessionExpired(analyticsResult)}
                     />
                 ) : null}
 

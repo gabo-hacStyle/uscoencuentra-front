@@ -1,6 +1,6 @@
 /**
- * GET /profile --> ProfileResponse
- * PATCH /profile <-- UpdateProfileRequest, --> ProfileResponse
+ * GET /api/profile --> ProfileResponse
+ * PATCH /api/profile <-- UpdateProfileRequest, --> ProfileResponse (PATCH parcial; null se rechaza)
  * La fotografia no forma parte del contrato, es la de google(ssession.user.image).
 */
 export interface ProfileResponse {

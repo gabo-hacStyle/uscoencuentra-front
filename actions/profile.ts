@@ -1,6 +1,7 @@
 "use server"; // esta función se ejecuta en el SERVIDOR aunque el modal (navegador) la llame
 
 import { auth } from "@/auth";
+import { getBackendAccessToken } from "@/lib/backend/session";
 import { isColombianMobileE164 } from "@/lib/phone";
 import { ProfileApiError, updatePhone, updateShareWhatsAppNumber } from "@/services/profile.service";
 import type { PhoneUpdateResult, ShareWhatsAppNumberResult } from "@/types/profile";
@@ -8,7 +9,8 @@ import type { PhoneUpdateResult, ShareWhatsAppNumberResult } from "@/types/profi
 export async function updatePhoneAction(rawNumero: string): Promise<PhoneUpdateResult> {
   // Una Server Action es un endpoint público: siempre se comprueba la sesión aquí dentro.
   const session = await auth();
-  if (!session?.user?.email || !session.accessToken) {
+  const accessToken = await getBackendAccessToken();
+  if (!session?.user?.email || !accessToken) {
     return { ok: false, field: "form", error: "Tu sesión no es válida. Cierra sesión e ingresa de nuevo." };
   }
 
@@ -20,7 +22,7 @@ export async function updatePhoneAction(rawNumero: string): Promise<PhoneUpdateR
 
   try {
     const updated = await updatePhone(
-      { accessToken: session.accessToken, email: session.user.email },
+      { accessToken, email: session.user.email },
       numero,
     );
     return { ok: true, numero: updated.numero };
@@ -40,12 +42,13 @@ export async function updatePhoneAction(rawNumero: string): Promise<PhoneUpdateR
 }
 
 /**
- * Guarda shareWhatsAppNumber del usuario autenticado (PATCH /profile { shareWhatsAppNumber }).
+ * Guarda shareWhatsAppNumber del usuario autenticado (PATCH /api/profile { shareWhatsAppNumber }).
  * Devuelve el valor confirmado por el servidor; "numero" no se envía ni se modifica.
  */
 export async function updateShareWhatsAppNumberAction(rawValue: unknown): Promise<ShareWhatsAppNumberResult> {
   const session = await auth();
-  if (!session?.user?.email || !session.accessToken) {
+  const accessToken = await getBackendAccessToken();
+  if (!session?.user?.email || !accessToken) {
     return { ok: false, error: "Tu sesión no es válida. Cierra sesión e ingresa de nuevo." };
   }
   // El cliente nunca es la autoridad: solo se acepta un booleano real.
@@ -55,7 +58,7 @@ export async function updateShareWhatsAppNumberAction(rawValue: unknown): Promis
 
   try {
     const updated = await updateShareWhatsAppNumber(
-      { accessToken: session.accessToken, email: session.user.email },
+      { accessToken, email: session.user.email },
       rawValue,
     );
     return { ok: true, shareWhatsAppNumber: updated.shareWhatsAppNumber };

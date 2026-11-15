@@ -8,6 +8,11 @@ import {
   normalizeRole
 } from "@/lib/roles";
 import {
+  BACKEND_SESSION_MAX_AGE_SECONDS,
+  computeBackendTokenExpiresAt,
+  readUsableBackendAccessToken,
+} from "@/lib/backend/token";
+import {
   BackendAuthError,
   exchangeGoogleIdToken,
 } from "@/services/auth.service";
@@ -19,7 +24,10 @@ type AccountWithBackend = Account & { backendAuth?: BackendAuthResponse };
 
 export const { handlers, auth } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
-  session: { strategy: "jwt" }, // sesión guardada en cookie cifrada (sin base de datos en el frontend)
+  session: {
+    strategy: "jwt", // sesión guardada en cookie cifrada (sin base de datos en el frontend)
+    maxAge: BACKEND_SESSION_MAX_AGE_SECONDS, // acuerdo de sesión del backend: 30 días
+  },
   pages: { signIn: "/login", error: "/login" }, // nuestros errores se muestran en /login
   providers: [
     Google({
@@ -28,7 +36,9 @@ export const { handlers, auth } = NextAuth({
       authorization: {
         params: {
           prompt: "select_account", // siempre deja elegir cuenta
-          // hd: "usco.edu.co", // OPCIONAL: solo una pista visual para Google; NO valida nada.
+          // Solo una pista visual para Google (sugiere cuentas institucionales); NO valida nada.
+          // Quien exige el dominio usco.edu.co y el claim hd es el backend.
+          hd: "usco.edu.co",
         },
       },
     }),
@@ -53,22 +63,28 @@ export const { handlers, auth } = NextAuth({
       }
     },
 
-    // Guarda los datos del backend en la cookie (solo en el primer login).
+    // Guarda los datos del backend en la cookie cifrada y controla su vigencia.
     async jwt({ token, account }) {
       const backendAuth = (account as AccountWithBackend | null)?.backendAuth;
       if (backendAuth) {
+        // Primer login. El refreshToken NO se guarda: el contrato no permite usarlo.
         token.accessToken = backendAuth.accessToken;
-        token.refreshToken = backendAuth.refreshToken; // queda solo en la cookie cifrada
+        token.backendTokenExpiresAt = computeBackendTokenExpiresAt(backendAuth.accessToken);
         token.role = backendAuth.user.role;
         token.name = backendAuth.user.name;
         token.email = backendAuth.user.email;
+        return token;
       }
-      return token;
+      // Accesos siguientes: si el token del backend venció (no hay refresh), se cierra la sesión.
+      // Devolver null hace que Auth.js borre la cookie y que auth() devuelva null.
+      return readUsableBackendAccessToken(token) ? token : null;
     },
 
     // Define qué ve el resto de la app cuando llama a auth() / useSession().
     async session({ session, token }) {
-       session.accessToken =
+      // @deprecated TEMPORAL: se sigue exponiendo para actions/contact.ts. El código nuevo debe usar
+      // getBackendAccessToken() (lib/backend/session.ts), que lo lee del JWT solo en el servidor.
+      session.accessToken =
         typeof token.accessToken === "string" ? token.accessToken : undefined;
       session.user.role = normalizeRole(token.role);
       return session;
