@@ -1,8 +1,10 @@
 import { isE164 } from "@/lib/phone";
+import { BackendNetworkError, backendFetch } from "@/lib/backend/client";
+import { isMockBackendEnabled } from "@/lib/backend/config";
 import { profilesMock } from "@/mocks/profiles.mock";
-import { API_URL, isMockBackendEnabled } from "@/services/auth.service";
 import type { ProfileResponse, UpdateProfileRequest } from "@/types/profile";
 
+// Contrato: GET /api/profile y PATCH /api/profile. El prefijo /api lo agrega lib/backend/config.ts.
 const PROFILE_PATH = "/profile";
 
 export type ProfileApiErrorKind =
@@ -57,19 +59,10 @@ async function requestProfile(
 ): Promise<ProfileResponse> {
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${PROFILE_PATH}`, {
-      method,
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${accessToken}`,
-        ...(body ? { "Content-Type": "application/json" } : {}),
-      },
-      body: body ? JSON.stringify(body) : undefined,
-      cache: "no-store",
-      signal: AbortSignal.timeout(10_000),
-    });
-  } catch {
-    throw new ProfileApiError("Unavailable", `No se pudo conectar con ${API_URL}${PROFILE_PATH}`);
+    response = await backendFetch(PROFILE_PATH, { method, json: body, accessToken });
+  } catch (error) {
+    if (error instanceof BackendNetworkError) throw new ProfileApiError("Unavailable", error.message);
+    throw error;
   }
 
   if (response.status === 401) throw new ProfileApiError("Unauthorized", "El backend respondió 401");

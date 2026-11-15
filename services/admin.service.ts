@@ -13,8 +13,9 @@ import type {
     HealthStatus,
     PaginatedResponse,
 } from "@/types/admin";
-import { auth } from "@/auth";
-import { API_URL, isMockBackendEnabled } from "@/services/auth.service";
+import { backendFetch } from "@/lib/backend/client";
+import { isMockBackendEnabled } from "@/lib/backend/config";
+import { getBackendAccessToken } from "@/lib/backend/session";
 import { createApiError, type AdminDataSource } from "./admin-data-source";
 import { createHttpAdminDataSource, type AdminFetcher } from "./admin-http-source";
 import { mockAdminDataSource } from "./admin-mock-source";
@@ -23,30 +24,25 @@ import { mockAdminDataSource } from "./admin-mock-source";
  * Admin data access. SERVER-SIDE ONLY ("server-only"): imported by app/admin/page.tsx and
  * actions/admin.ts, never by client components. Components never build URLs or call fetch.
  *
- * Data source selection (read on every call):
- * - MOCK_BACKEND=true      -> mock (there is no real backend token to send).
- * - ADMIN_DATA_SOURCE=http -> HTTP endpoints of docs/admin-api-contract.md.
- * - anything else          -> mock (default while the admin endpoints do not exist).
+ * Data source selection (read on every call), governed by the team-wide MOCK_BACKEND switch:
+ * - MOCK_BACKEND=true (development only) -> mock data inside the Next server.
+ * - otherwise (always in production)      -> the backend /api/admin/* and /api/health endpoints.
  */
 export function getAdminDataSourceMode(): AdminDataSourceMode {
-    if (isMockBackendEnabled()) return "mock";
-    return process.env.ADMIN_DATA_SOURCE === "http" ? "http" : "mock";
+    return isMockBackendEnabled() ? "mock" : "http";
 }
 
-const BACKEND_TIMEOUT_MS = 10_000;
+/**
+ * Shared transport (lib/backend/client.ts): API_URL + "/api", Accept, no cache, timeout.
+ * Protected routes carry the backend token read on the server (lib/backend/session.ts).
+ */
+const adminFetcher: AdminFetcher = async (path, { method, authenticated }) => {
+    if (!authenticated) return backendFetch(path, { method });
 
-/** Same conventions as profile.service.ts: API_URL, Bearer token from the session, no cache, timeout. */
-const adminFetcher: AdminFetcher = async (path, init) => {
-    const session = await auth();
-    // Without a backend token the request would be rejected anyway: answer as the backend would (401)
-    if (!session?.accessToken) return new Response(null, { status: 401 });
-
-    return fetch(`${API_URL}${path}`, {
-        ...init,
-        headers: { Accept: "application/json", Authorization: `Bearer ${session.accessToken}` },
-        cache: "no-store",
-        signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
-    });
+    const accessToken = await getBackendAccessToken();
+    // Without a valid backend token the request would be rejected anyway: answer as the backend would (401)
+    if (!accessToken) return new Response(null, { status: 401 });
+    return backendFetch(path, { method, accessToken });
 };
 
 const httpAdminDataSource = createHttpAdminDataSource(adminFetcher);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ReauthenticateButton } from "@/components/auth/ReauthenticateButton";
 import { Alert } from "@/components/profile/Alert";
 import { EditProfileModal } from "@/components/profile/EditProfileModal";
 import { formatPhone } from "@/lib/item-format";
@@ -10,12 +11,14 @@ type PersonalDataProps = {
   email: string;
   numero: string | null;
   loadError: string | null;
+  /** El backend respondió 401: se ofrece iniciar sesión de nuevo. */
+  sessionExpired?: boolean;
 };
 
 const FOCUS =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-usco-wine";
 
-export function PersonalData({ name, email, numero, loadError }: PersonalDataProps) {
+export function PersonalData({ name, email, numero, loadError, sessionExpired = false }: PersonalDataProps) {
   const [currentNumero, setCurrentNumero] = useState(numero);
   const [isEditing, setIsEditing] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
@@ -55,7 +58,10 @@ export function PersonalData({ name, email, numero, loadError }: PersonalDataPro
 
       <div className="mt-5">
         {loadError ? (
-          <Alert variant="error">{loadError}</Alert>
+          <div className="space-y-3">
+            <Alert variant="error">{loadError}</Alert>
+            {sessionExpired ? <ReauthenticateButton /> : null}
+          </div>
         ) : currentNumero ? (
           // Número REGISTRADO
           <div className="flex items-center gap-4 rounded-2xl border border-usco-line bg-white p-4">

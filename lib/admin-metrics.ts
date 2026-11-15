@@ -4,7 +4,7 @@ import type { AdminGlobalMetrics, AdminScopeMetrics, RankedCount } from "@/types
  * Derived values for the Summary section. All percentages are computed here from raw counts,
  * so the UI never shows hard-coded percentages or phrases.
  *
- * Formulas (also documented in docs/admin-api-contract.md):
+ * Formulas (also documented in README.md, "Métricas: significado y fórmulas"):
  * KPI cards (global metrics, never filtered):
  * - lostReportsPercent        = global.lostReports / global.totalReports * 100
  * - foundReportsPercent       = global.foundReports / global.totalReports * 100

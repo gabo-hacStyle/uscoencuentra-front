@@ -2,24 +2,11 @@ import type { HealthServiceCheck, HealthState } from "@/types/admin";
 import type { ItemCategory, ItemType } from "@/types/item";
 import type { ItemLocation } from "@/lib/item-locations";
 
-/**
- * FICTITIOUS record-level data for the admin Summary (mock phase only).
- *
- * The mock source of services/admin-mock-source.ts aggregates these records with the same rules
- * the backend must follow (docs/admin-api-contract.md), so every filter combination gets a
- * coherent answer. There are no pre-computed scenarios and no stored percentages.
- *
- * Kept apart from mocks/items.mock.ts on purpose: these records only carry the fields the
- * analytics need. They are generated with a fixed seed (same data on every server start) and
- * dates relative to the server start, so "Hoy" or "Este mes" always have something to show.
- */
-
 export type MockAnalyticsReport = {
     id: string;
     type: ItemType;
     category: ItemCategory;
     location: ItemLocation;
-    /** ISO 8601 instant. The period filters apply to this field. */
     publishedAt: string;
 };
 

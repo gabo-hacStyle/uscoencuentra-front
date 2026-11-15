@@ -31,7 +31,8 @@ export const ADMIN_ERROR_MESSAGES: Record<ApiErrorCode, string> = {
     BAD_REQUEST: "La solicitud no es válida.",
     UNAUTHORIZED: "Tu sesión expiró. Inicia sesión de nuevo.",
     FORBIDDEN: "No tienes permisos para realizar esta acción.",
-    NOT_FOUND: "El reporte no existe o ya fue eliminado.",
+    // Generic on purpose: a 404 can come from any admin route, not only from a report.
+    NOT_FOUND: "El recurso solicitado no existe o ya fue eliminado.",
     CONFLICT: "El reporte no se puede modificar en su estado actual.",
     SERVER_ERROR: "Ocurrió un error en el servidor.",
     SERVICE_UNAVAILABLE: "El servicio no está disponible en este momento.",

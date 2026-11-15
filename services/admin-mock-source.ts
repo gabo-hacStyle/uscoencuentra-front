@@ -19,10 +19,10 @@ import { isWithinPeriod, normalizeSearchText } from "@/lib/admin-filters";
 import { createApiError, type AdminDataSource } from "./admin-data-source";
 
 /**
- * MOCK data source: used while the admin endpoints do not exist (see admin.service.ts).
+ * MOCK data source: used only with MOCK_BACKEND=true in development (see admin.service.ts).
  *
- * It simulates the backend inside the Next server, applying the rules of
- * docs/admin-api-contract.md to fictitious data. It never calls the network and never claims
+ * It simulates the backend inside the Next server, applying the rules of the admin contract
+ * (README.md, "Módulo de administración") to fictitious data. It never calls the network and never claims
  * to: the panel shows a "modo demostración" notice whenever this source is active.
  */
 
