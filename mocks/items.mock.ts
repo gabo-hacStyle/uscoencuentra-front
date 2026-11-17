@@ -1,5 +1,8 @@
 import type { Item, PrivateContact } from "@/types/item";
 
+// Only used by services/admin-mock-source.ts (MOCK_BACKEND=true). The items and contact services
+// read the real backend. Delete together with the admin mock when MOCK_BACKEND is removed.
+
 // Dates relative to now, so "Hoy" / "Ayer" always make sense in the demo
 const daysAgo = (days: number) =>
     new Date(Date.now() - days * 86_400_000).toISOString();

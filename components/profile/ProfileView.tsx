@@ -3,9 +3,12 @@ import { auth } from "@/auth";
 import { PersonalData } from "@/components/profile/PersonalData";
 import { PrivacyCard } from "@/components/profile/PrivacyCard";
 import { UserAvatar } from "@/components/profile/UserAvatar";
+import { getBackendAccessToken } from "@/lib/backend/session";
 import { ROLE_LABEL } from "@/lib/roles";
 import { ProfileApiError, getProfile } from "@/services/profile.service";
 import type { ProfileResponse } from "@/types/profile";
+
+const SESSION_EXPIRED_MESSAGE = "Tu sesión con el servidor expiró. Inicia sesión de nuevo para ver tu número de contacto.";
 
 export async function ProfileView() {
   const session = await auth();
@@ -18,18 +21,27 @@ export async function ProfileView() {
   const roleLabel = ROLE_LABEL[session.user.role]; // "usuario" o "administrador".
   const photoUrl = session.user.image ?? null; 
 
-  // El número viene de GET /profile (PROVISIONAL). Si falla, el resto del perfil sigue visible.
+  // El número viene de GET /api/profile. Si falla, el resto del perfil sigue visible.
+  // Ante un 401 (o sin token vigente) se ofrece iniciar sesión de nuevo: el contrato no tiene refresh.
   let profile: ProfileResponse | null = null;
   let loadError: string | null = null;
-  try {
-    profile = await getProfile({ accessToken: session.accessToken ?? "", email });
-  } catch (error) {
-    console.error("[profile] No se pudo cargar el perfil:", error);
-    loadError =
-      error instanceof ProfileApiError && error.kind === "Unauthorized"
-        ? "Tu sesión con el servidor expiró. Cierra sesión e ingresa de nuevo."
-        : "No pudimos cargar tu número de contacto. Recarga la página en unos minutos.";
+  let sessionExpired = false;
+  const accessToken = await getBackendAccessToken();
+  if (!accessToken) {
+    sessionExpired = true;
+  } else {
+    try {
+      profile = await getProfile({ accessToken, email });
+    } catch (error) {
+      if (error instanceof ProfileApiError && error.kind === "Unauthorized") {
+        sessionExpired = true;
+      } else {
+        console.error("[profile] No se pudo cargar el perfil:", error);
+        loadError = "No pudimos cargar tu número de contacto. Recarga la página en unos minutos.";
+      }
+    }
   }
+  if (sessionExpired) loadError = SESSION_EXPIRED_MESSAGE;
 
   return (
     <div className="space-y-6">
@@ -60,6 +72,7 @@ export async function ProfileView() {
             email={email}
             numero={profile?.numero ?? null}
             loadError={loadError}
+            sessionExpired={sessionExpired}
           />
         </div>
       </section>

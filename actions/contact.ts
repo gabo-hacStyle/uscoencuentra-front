@@ -1,6 +1,7 @@
 "use server"; // se ejecuta en el SERVIDOR aunque la modal (navegador) la llame
 
 import { auth } from "@/auth";
+import { getBackendAccessToken } from "@/lib/backend/session";
 import { ContactApiError, getPrivateContact } from "@/services/contact.service";
 import type { PrivateContact } from "@/types/item";
 
@@ -17,14 +18,15 @@ const ITEM_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 export async function getPrivateContactAction(itemId: unknown): Promise<PrivateContactResult> {
     // Una Server Action es un endpoint público: siempre se comprueba la sesión aquí dentro.
     const session = await auth();
-    if (!session?.user) return { ok: false, error: "No se pudo autenticar la identidad" };
+    const accessToken = await getBackendAccessToken();
+    if (!session?.user || !accessToken) return { ok: false, error: "No se pudo autenticar la identidad" };
 
     if (typeof itemId !== "string" || !ITEM_ID_PATTERN.test(itemId)) {
         return { ok: false, error: "Objeto no encontrado" };
     }
 
     try {
-        return { ok: true, contact: await getPrivateContact(itemId, session.accessToken ?? "") };
+        return { ok: true, contact: await getPrivateContact(itemId, accessToken) };
     } catch (error) {
         if (error instanceof ContactApiError) {
             if (error.kind === "Unauthorized") return { ok: false, error: "No se pudo autenticar la identidad" };

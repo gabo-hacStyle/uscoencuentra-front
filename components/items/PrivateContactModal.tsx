@@ -2,12 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getPrivateContactAction } from "@/actions/contact";
+import { startVerificationAction } from "@/actions/items";
 import Modal from "@/components/ui/BaseModal";
 import { IconClose } from "@/components/ui/icons";
 import { contactPublisher } from "@/lib/contact-links";
 import { formatPhone } from "@/lib/item-format";
 import { ITEM_TEXTS } from "@/lib/item-texts";
-import { startVerification } from "@/services/items.service";
 import type { Item, PrivateContact } from "@/types/item";
 
 type ContactState =
@@ -23,18 +23,18 @@ interface PrivateContactModalProps {
 function InfoField({ label, value }: { label: string; value: string }) {
     return (
         <div>
-        <dt className="text-[0.65rem] font-bold uppercase tracking-wider text-usco-muted">
-            {label}
-        </dt>
-        <dd className="mt-1 wrap-break font-bold text-usco-ink">{value}</dd>
+            <dt className="text-[0.65rem] font-bold uppercase tracking-wider text-usco-muted">
+                {label}
+            </dt>
+            <dd className="mt-1 wrap-break font-bold text-usco-ink">{value}</dd>
         </div>
     );
 }
 
-
 export default function PrivateContactModal({ item, onClose }: PrivateContactModalProps) {
     const texts = ITEM_TEXTS[item.type];
     const [state, setState] = useState<ContactState>({ status: "loading" });
+    const [notice, setNotice] = useState<string | null>(null);
 
     const verificationRequested = useRef(false); // avoids sending the request twice per open modal
 
@@ -43,90 +43,102 @@ export default function PrivateContactModal({ item, onClose }: PrivateContactMod
 
         contactPublisher(item, state.contact); // opens Gmail/WhatsApp first, inside the click
 
-        // Only a report still in "Buscando" starts a verification
-        if (item.status !== "active" || verificationRequested.current) return;
-
+        // Only another person's report still in "Buscando" starts a verification
+        if (item.isOwner || item.status !== "active" || verificationRequested.current) return;
         verificationRequested.current = true;
 
-        startVerification(item.id).catch(() => {
-            verificationRequested.current = false; // the contact already opened; allow a retry
-        });
+        startVerificationAction(item.id)
+            .then((result) => {
+                if (result.ok) return;
+                if (result.reason === "linked") setNotice(result.error); // stays marked: do not retry
+                else verificationRequested.current = false; // the contact already opened; allow a retry
+            })
+            .catch(() => {
+                verificationRequested.current = false;
+            });
     }
 
     useEffect(() => {
-
         let cancelled = false;
         // GET /items/:id/contact, on demand, through a Server Action (the private data never ships in the bundle)
         getPrivateContactAction(item.id)
-        .then((result) => {
-            if (!cancelled) setState(result.ok ? { status: "ready", contact: result.contact } : { status: "error" });
-        })
-        .catch(() => {
-            if (!cancelled) setState({ status: "error" });
-        });
+            .then((result) => {
+                if (!cancelled) {
+                    setState(result.ok ? { status: "ready", contact: result.contact } : { status: "error" });
+                }
+            })
+            .catch(() => {
+                if (!cancelled) setState({ status: "error" });
+            });
         return () => {
-        cancelled = true;
+            cancelled = true;
         };
     }, [item.id]);
 
     return (
         <Modal label={texts.contactTitle} onClose={onClose} className="w-[min(32rem,92vw)]">
-        <div className="relative p-6 md:p-8">
-            <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="absolute right-5 top-5 grid h-8 w-8 place-items-center rounded-full text-usco-ink transition hover:bg-usco-cream"
-            >
-            <IconClose className="h-4 w-4" />
-            </button>
+            <div className="relative p-6 md:p-8">
+                <button
+                    type="button"
+                    onClick={onClose}
+                    aria-label="Cerrar"
+                    className="absolute right-5 top-5 grid h-8 w-8 place-items-center rounded-full text-usco-ink transition hover:bg-usco-cream"
+                >
+                    <IconClose className="h-4 w-4" />
+                </button>
 
-            <p className="text-xs font-bold uppercase tracking-widest text-usco-wine">
-            Contacto privado
-            </p>
-            <h2 className="mt-2 pr-8 text-2xl font-bold text-usco-ink">
-            {texts.contactTitle}
-            </h2>
-            <p className="mt-2 text-usco-muted">{texts.contactDescription}</p>
-
-            <div className="mt-5 rounded-2xl bg-usco-sand p-5" aria-live="polite">
-            {state.status === "loading" && (
-                <p className="text-sm text-usco-muted">Cargando datos de contacto…</p>
-            )}
-            {state.status === "error" && (
-                <p role="alert" className="text-sm font-medium text-usco-wine">
-                No pudimos cargar los datos de contacto. Intenta de nuevo más tarde.
+                <p className="text-xs font-bold uppercase tracking-widest text-usco-wine">
+                    Contacto privado
                 </p>
-            )}
-            {state.status === "ready" && (
-                <dl className="space-y-4">
-                <InfoField label="Publicado por" value={state.contact.publishedBy} />
-                {state.contact.whatsapp && (
-                    <InfoField label="WhatsApp" value={formatPhone(state.contact.whatsapp)} />
-                )}
-                <InfoField label="Correo institucional" value={state.contact.email} />
-                </dl>
-            )}
-            </div>
+                <h2 className="mt-2 pr-8 text-2xl font-bold text-usco-ink">
+                    {texts.contactTitle}
+                </h2>
+                <p className="mt-2 text-usco-muted">{texts.contactDescription}</p>
 
-            <div className="mt-6 flex justify-end gap-3">
-            <button
-                type="button"
-                onClick={onClose}
-                className="rounded-full border border-usco-line px-5 py-2.5 font-bold text-usco-ink transition hover:bg-usco-cream"
-            >
-                Cancelar
-            </button>
-            <button
-                type="button"
-                disabled={state.status !== "ready"}
-                onClick={handleAction}
-                className="rounded-full bg-usco-wine px-5 py-2.5 font-bold text-white transition hover:bg-usco-wine-dark disabled:cursor-not-allowed disabled:opacity-50"
-            >
-                {texts.actionLabel}
-            </button>
+                <div className="mt-5 rounded-2xl bg-usco-sand p-5" aria-live="polite">
+                    {state.status === "loading" && (
+                        <p className="text-sm text-usco-muted">Cargando datos de contacto…</p>
+                    )}
+                    {state.status === "error" && (
+                        <p role="alert" className="text-sm font-medium text-usco-wine">
+                            No pudimos cargar los datos de contacto. Intenta de nuevo más tarde.
+                        </p>
+                    )}
+                    {state.status === "ready" && (
+                        <dl className="space-y-4">
+                            <InfoField label="Publicado por" value={state.contact.publishedBy} />
+                            {state.contact.whatsapp && (
+                                <InfoField label="WhatsApp" value={formatPhone(state.contact.whatsapp)} />
+                            )}
+                            <InfoField label="Correo institucional" value={state.contact.email} />
+                        </dl>
+                    )}
+                </div>
+
+                {notice && (
+                    <p role="status" className="mt-3 text-sm font-medium text-usco-wine">
+                        {notice}
+                    </p>
+                )}
+
+                <div className="mt-6 flex justify-end gap-3">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-full border border-usco-line px-5 py-2.5 font-bold text-usco-ink transition hover:bg-usco-cream"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="button"
+                        disabled={state.status !== "ready"}
+                        onClick={handleAction}
+                        className="rounded-full bg-usco-wine px-5 py-2.5 font-bold text-white transition hover:bg-usco-wine-dark disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        {texts.actionLabel}
+                    </button>
+                </div>
             </div>
-        </div>
         </Modal>
     );
 }

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
+import { createItemAction } from "@/actions/items";
 import Modal from "@/components/ui/BaseModal";
 import { IconCamera, IconCheck, IconClose } from "@/components/ui/icons";
 import { CATEGORY_CONFIG } from "@/lib/item-categories";
@@ -15,8 +16,10 @@ import {
     type ReportField,
     type ReportValues,
 } from "@/lib/report-validation";
-import { createItem } from "@/services/items.service";
 import type { ItemCategory, ItemType } from "@/types/item";
+
+// The backend does not accept images yet (S3 pending). Turn on when it does.
+const PHOTO_UPLOAD_ENABLED = false;
 
 const TYPE_OPTIONS: { value: ItemType; label: string; dateLabel: string }[] = [
     { value: "lost", label: "Objeto perdido", dateLabel: "Fecha aproximada" },
@@ -54,19 +57,19 @@ interface FieldProps {
 function Field({ name, label, optional = false, error, counter, className = "", children }: FieldProps) {
     return (
         <div className={className}>
-        <label htmlFor={`report-${name}`} className={labelClass}>
-            {label}
-            {optional && <span className="font-normal text-usco-muted"> (opcional)</span>}
-        </label>
-        <div className="mt-2">{children}</div>
-        {(error || counter) && (
-            <div className="mt-1.5 flex justify-between gap-3 text-xs">
-            <p id={`report-${name}-error`} className="font-medium text-usco-wine">
-                {error}
-            </p>
-            {counter && <span className="ml-auto text-usco-muted">{counter}</span>}
-            </div>
-        )}
+            <label htmlFor={`report-${name}`} className={labelClass}>
+                {label}
+                {optional && <span className="font-normal text-usco-muted"> (opcional)</span>}
+            </label>
+            <div className="mt-2">{children}</div>
+            {(error || counter) && (
+                <div className="mt-1.5 flex justify-between gap-3 text-xs">
+                    <p id={`report-${name}-error`} className="font-medium text-usco-wine">
+                        {error}
+                    </p>
+                    {counter && <span className="ml-auto text-usco-muted">{counter}</span>}
+                </div>
+            )}
         </div>
     );
 }
@@ -82,6 +85,7 @@ export default function ReportItemModal({ onClose }: ReportItemModalProps) {
     const [photo, setPhoto] = useState<{ file: File; url: string } | null>(null);
     const [photoError, setPhotoError] = useState<string | null>(null);
     const [status, setStatus] = useState<Status>("editing");
+    const [submitError, setSubmitError] = useState<string | null>(null);
     const [today] = useState(todayLocal); // max value of the date input
     const photoUrlRef = useRef<string | null>(null);
 
@@ -92,7 +96,7 @@ export default function ReportItemModal({ onClose }: ReportItemModalProps) {
     // Release the preview blob URL when the modal unmounts
     useEffect(() => {
         return () => {
-        if (photoUrlRef.current) URL.revokeObjectURL(photoUrlRef.current);
+            if (photoUrlRef.current) URL.revokeObjectURL(photoUrlRef.current);
         };
     }, []);
 
@@ -135,6 +139,7 @@ export default function ReportItemModal({ onClose }: ReportItemModalProps) {
         setValues(INITIAL_VALUES);
         setTouched({});
         setPhotoError(null);
+        setSubmitError(null);
         replacePhoto(null);
         setStatus("editing");
     }
@@ -150,313 +155,326 @@ export default function ReportItemModal({ onClose }: ReportItemModalProps) {
         if (!isValid || status === "submitting") return;
 
         setStatus("submitting");
+        setSubmitError(null);
         try {
-        await createItem({
-            type: values.type,
-            title: values.title.trim(),
-            category: values.category as ItemCategory, // validated above
-            description: values.description.trim(),
-            location: values.location as ItemLocation, // validated above
-            locationDetail: values.locationDetail.trim() || null,
-            eventDate: values.date,
-            image: photo?.file ?? null,
-        });
-        setStatus("success");
+            // The photo is not sent: the backend does not accept images yet (S3 pending)
+            const result = await createItemAction({
+                type: values.type,
+                title: values.title.trim(),
+                category: values.category,
+                description: values.description.trim(),
+                location: values.location,
+                locationDetail: values.locationDetail.trim() || null,
+                eventDate: values.date,
+            });
+            if (result.ok) {
+                setStatus("success");
+            } else {
+                setSubmitError(result.error);
+                setStatus("error"); // keeps the typed values so the user can retry
+            }
         } catch {
-        setStatus("error"); // keeps the typed values so the user can retry
+            setStatus("error"); // the action itself could not be reached
         }
     }
 
     return (
         <Modal label="Reportar un objeto" onClose={handleClose} className="w-[min(40rem,94vw)]">
-        <div className="relative max-h-[90vh] overflow-y-auto p-6 md:p-8">
-            <button
-            type="button"
-            onClick={handleClose}
-            aria-label="Cerrar"
-            className="absolute right-5 top-5 grid h-8 w-8 place-items-center rounded-full text-usco-ink transition hover:bg-usco-cream"
-            >
-            <IconClose className="h-4 w-4" />
-            </button>
-
-            {status === "success" ? (
-            <div className="flex flex-col items-center py-6 text-center" aria-live="polite">
-                <span className="grid h-16 w-16 place-items-center rounded-full bg-usco-wine/10 text-usco-wine">
-                <IconCheck className="h-8 w-8" />
-                </span>
-                <h2 className="mt-5 text-2xl font-bold text-usco-ink">¡Reporte publicado!</h2>
-                <p className="mt-2 max-w-sm text-usco-muted">
-                {values.type === "lost"
-                    ? "Tu reporte ya es visible para la comunidad. Te contactarán de forma privada si alguien encuentra tu objeto."
-                    : "Gracias por ayudar. Si alguien reconoce el objeto, te contactará de forma privada."}
-                </p>
-                <div className="mt-8 flex flex-wrap justify-center gap-3">
-                <button
-                    type="button"
-                    onClick={resetForm}
-                    className="rounded-full border border-usco-line px-5 py-2.5 font-bold text-usco-ink transition hover:bg-usco-cream"
-                >
-                    Reportar otro objeto
-                </button>
+            <div className="relative max-h-[90vh] overflow-y-auto p-6 md:p-8">
                 <button
                     type="button"
                     onClick={handleClose}
-                    className="rounded-full bg-usco-wine px-6 py-2.5 font-bold text-white transition hover:bg-usco-wine-dark"
+                    aria-label="Cerrar"
+                    className="absolute right-5 top-5 grid h-8 w-8 place-items-center rounded-full text-usco-ink transition hover:bg-usco-cream"
                 >
-                    Listo
+                    <IconClose className="h-4 w-4" />
                 </button>
-                </div>
-            </div>
-            ) : (
-            <form onSubmit={handleSubmit} noValidate className="space-y-5">
-                <header>
-                <p className="text-xs font-bold uppercase tracking-widest text-usco-wine">
-                    Nuevo reporte
-                </p>
-                <h2 className="mt-2 pr-8 text-3xl font-bold text-usco-ink">Reporta un objeto</h2>
-                <p className="mt-2 text-usco-muted">
-                    Ayuda a la comunidad a encontrarlo o devolverlo.
-                </p>
-                </header>
 
-                {/* Lost / found selector: real radio inputs, so keyboard and screen readers work */}
-                <fieldset>
-                <legend className="sr-only">¿Qué quieres reportar?</legend>
-                <div className="grid gap-3 sm:grid-cols-2">
-                    {TYPE_OPTIONS.map((option) => (
-                    <label
-                        key={option.value}
-                        className="flex cursor-pointer items-center gap-3 rounded-2xl border border-usco-line bg-white px-4 py-3.5 font-medium text-usco-ink transition hover:border-usco-wine/40 has-checked:border-usco-wine has-checked:bg-usco-wine/5 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-usco-wine"
-                    >
-                        <input
-                        type="radio"
-                        name="type"
-                        value={option.value}
-                        checked={values.type === option.value}
-                        onChange={() => set("type", option.value)}
-                        className="h-4 w-4 shrink-0 accent-usco-wine"
-                        />
-                        {option.label}
-                    </label>
-                    ))}
-                </div>
-                </fieldset>
-
-                <Field name="title" label="Título del objeto" error={shown("title")}>
-                <input
-                    {...inputProps("title")}
-                    type="text"
-                    value={values.title}
-                    maxLength={LIMITS.titleMax}
-                    onChange={(e) => set("title", e.target.value)}
-                    placeholder="Ej. Carnet estudiantil"
-                />
-                </Field>
-
-                <Field name="category" label="Categoría" error={shown("category")}>
-                <select
-                    {...inputProps("category")}
-                    value={values.category}
-                    onChange={(e) => set("category", e.target.value as ItemCategory | "")}
-                >
-                    <option value="" disabled>
-                    Selecciona una categoría
-                    </option>
-                    {CATEGORY_CONFIG.map(({ category }) => (
-                    <option key={category} value={category}>
-                        {category}
-                    </option>
-                    ))}
-                </select>
-                </Field>
-
-                <Field
-                name="description"
-                label="Descripción del objeto"
-                error={shown("description")}
-                counter={`${values.description.length}/${LIMITS.descriptionMax}`}
-                >
-                <textarea
-                    {...inputProps("description")}
-                    rows={4}
-                    value={values.description}
-                    maxLength={LIMITS.descriptionMax}
-                    onChange={(e) => set("description", e.target.value)}
-                    placeholder="Describe sus características, color, marca o señales particulares."
-                    className={`${inputProps("description").className} resize-none`}
-                />
-                </Field>
-
-                {/* Optional photo: the file is sent to the backend, which stores it and returns a URL */}
-                <div>
-                <p className={labelClass}>Foto del objeto</p>
-                <input
-                    id="report-photo"
-                    type="file"
-                    accept={ACCEPTED_IMAGE_TYPES.join(",")}
-                    onChange={handlePhotoChange}
-                    className="peer sr-only"
-                />
-                <div className="mt-2">
-                    {photo ? (
-                    <div className="flex items-center gap-4 rounded-2xl border border-usco-line p-3">
-                        {/* eslint-disable-next-line @next/next/no-img-element -- blob: preview, next/image does not accept it */}
-                        <img
-                        src={photo.url}
-                        alt="Vista previa de la fotografía"
-                        className="h-20 w-20 shrink-0 rounded-xl object-cover"
-                        />
-                        <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-usco-ink">{photo.file.name}</p>
-                        <p className="text-xs text-usco-muted">
-                            {(photo.file.size / (1024 * 1024)).toFixed(1)} MB
+                {status === "success" ? (
+                    <div className="flex flex-col items-center py-6 text-center" aria-live="polite">
+                        <span className="grid h-16 w-16 place-items-center rounded-full bg-usco-wine/10 text-usco-wine">
+                            <IconCheck className="h-8 w-8" />
+                        </span>
+                        <h2 className="mt-5 text-2xl font-bold text-usco-ink">¡Reporte publicado!</h2>
+                        <p className="mt-2 max-w-sm text-usco-muted">
+                            {values.type === "lost"
+                                ? "Tu reporte ya es visible para la comunidad. Te contactarán de forma privada si alguien encuentra tu objeto."
+                                : "Gracias por ayudar. Si alguien reconoce el objeto, te contactará de forma privada."}
                         </p>
+                        <div className="mt-8 flex flex-wrap justify-center gap-3">
+                            <button
+                                type="button"
+                                onClick={resetForm}
+                                className="rounded-full border border-usco-line px-5 py-2.5 font-bold text-usco-ink transition hover:bg-usco-cream"
+                            >
+                                Reportar otro objeto
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleClose}
+                                className="rounded-full bg-usco-wine px-6 py-2.5 font-bold text-white transition hover:bg-usco-wine-dark"
+                            >
+                                Listo
+                            </button>
                         </div>
-                        <label
-                        htmlFor="report-photo"
-                        className="cursor-pointer text-sm font-bold text-usco-wine hover:underline"
-                        >
-                        Cambiar
-                        </label>
-                        <button
-                        type="button"
-                        onClick={() => replacePhoto(null)}
-                        aria-label="Quitar fotografía"
-                        className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-usco-ink transition hover:bg-usco-cream"
-                        >
-                        <IconClose className="h-4 w-4" />
-                        </button>
                     </div>
-                    ) : (
-                    <label
-                        htmlFor="report-photo"
-                        className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-usco-line px-4 py-5 text-sm text-usco-muted transition hover:border-usco-wine/50 hover:bg-usco-cream peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-usco-wine"
-                    >
-                        <IconCamera className="h-5 w-5" />
-                        <span className="font-medium text-usco-ink">Agregar fotografía</span>
-                        <span className="text-xs">(opcional)</span>
-                    </label>
-                    )}
-                </div>
-                <p className="mt-1.5 text-xs text-usco-muted">
-                    JPG, PNG o WebP, máximo 5 MB. Evita fotos donde se vean números de documento u
-                    otros datos personales.
-                </p>
-                {photoError && (
-                    <p role="alert" className="mt-1 text-xs font-medium text-usco-wine">
-                    {photoError}
-                    </p>
+                ) : (
+                    <form onSubmit={handleSubmit} noValidate className="space-y-5">
+                        <header>
+                            <p className="text-xs font-bold uppercase tracking-widest text-usco-wine">
+                                Nuevo reporte
+                            </p>
+                            <h2 className="mt-2 pr-8 text-3xl font-bold text-usco-ink">Reporta un objeto</h2>
+                            <p className="mt-2 text-usco-muted">
+                                Ayuda a la comunidad a encontrarlo o devolverlo.
+                            </p>
+                        </header>
+
+                        {/* Lost / found selector: real radio inputs, so keyboard and screen readers work */}
+                        <fieldset>
+                            <legend className="sr-only">¿Qué quieres reportar?</legend>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                {TYPE_OPTIONS.map((option) => (
+                                    <label
+                                        key={option.value}
+                                        className="flex cursor-pointer items-center gap-3 rounded-2xl border border-usco-line bg-white px-4 py-3.5 font-medium text-usco-ink transition hover:border-usco-wine/40 has-checked:border-usco-wine has-checked:bg-usco-wine/5 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-usco-wine"
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="type"
+                                            value={option.value}
+                                            checked={values.type === option.value}
+                                            onChange={() => set("type", option.value)}
+                                            className="h-4 w-4 shrink-0 accent-usco-wine"
+                                        />
+                                        {option.label}
+                                    </label>
+                                ))}
+                            </div>
+                        </fieldset>
+
+                        <Field name="title" label="Título del objeto" error={shown("title")}>
+                            <input
+                                {...inputProps("title")}
+                                type="text"
+                                value={values.title}
+                                maxLength={LIMITS.titleMax}
+                                onChange={(e) => set("title", e.target.value)}
+                                placeholder="Ej. Carnet estudiantil"
+                            />
+                        </Field>
+
+                        <Field name="category" label="Categoría" error={shown("category")}>
+                            <select
+                                {...inputProps("category")}
+                                value={values.category}
+                                onChange={(e) => set("category", e.target.value as ItemCategory | "")}
+                            >
+                                <option value="" disabled>
+                                    Selecciona una categoría
+                                </option>
+                                {CATEGORY_CONFIG.map(({ category }) => (
+                                    <option key={category} value={category}>
+                                        {category}
+                                    </option>
+                                ))}
+                            </select>
+                        </Field>
+
+                        <Field
+                            name="description"
+                            label="Descripción del objeto"
+                            error={shown("description")}
+                            counter={`${values.description.length}/${LIMITS.descriptionMax}`}
+                        >
+                            <textarea
+                                {...inputProps("description")}
+                                rows={4}
+                                value={values.description}
+                                maxLength={LIMITS.descriptionMax}
+                                onChange={(e) => set("description", e.target.value)}
+                                placeholder="Describe sus características, color, marca o señales particulares."
+                                className={`${inputProps("description").className} resize-none`}
+                            />
+                        </Field>
+
+                        {/* Optional photo. Hidden while PHOTO_UPLOAD_ENABLED is false (S3 pending) */}
+                        {PHOTO_UPLOAD_ENABLED && (
+                            <div>
+                                <p className={labelClass}>Foto del objeto</p>
+                                <input
+                                    id="report-photo"
+                                    type="file"
+                                    accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                                    onChange={handlePhotoChange}
+                                    className="peer sr-only"
+                                />
+                                <div className="mt-2">
+                                    {photo ? (
+                                        <div className="flex items-center gap-4 rounded-2xl border border-usco-line p-3">
+                                            {/* eslint-disable-next-line @next/next/no-img-element -- blob: preview, next/image does not accept it */}
+                                            <img
+                                                src={photo.url}
+                                                alt="Vista previa de la fotografía"
+                                                className="h-20 w-20 shrink-0 rounded-xl object-cover"
+                                            />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="truncate text-sm font-medium text-usco-ink">
+                                                    {photo.file.name}
+                                                </p>
+                                                <p className="text-xs text-usco-muted">
+                                                    {(photo.file.size / (1024 * 1024)).toFixed(1)} MB
+                                                </p>
+                                            </div>
+                                            <label
+                                                htmlFor="report-photo"
+                                                className="cursor-pointer text-sm font-bold text-usco-wine hover:underline"
+                                            >
+                                                Cambiar
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={() => replacePhoto(null)}
+                                                aria-label="Quitar fotografía"
+                                                className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-usco-ink transition hover:bg-usco-cream"
+                                            >
+                                                <IconClose className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <label
+                                            htmlFor="report-photo"
+                                            className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-usco-line px-4 py-5 text-sm text-usco-muted transition hover:border-usco-wine/50 hover:bg-usco-cream peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-usco-wine"
+                                        >
+                                            <IconCamera className="h-5 w-5" />
+                                            <span className="font-medium text-usco-ink">Agregar fotografía</span>
+                                            <span className="text-xs">(opcional)</span>
+                                        </label>
+                                    )}
+                                </div>
+                                <p className="mt-1.5 text-xs text-usco-muted">
+                                    JPG, PNG o WebP, máximo 5 MB. Evita fotos donde se vean números de
+                                    documento u otros datos personales.
+                                </p>
+                                {photoError && (
+                                    <p role="alert" className="mt-1 text-xs font-medium text-usco-wine">
+                                        {photoError}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <Field name="location" label="Lugar" error={shown("location")}>
+                                <select
+                                    {...inputProps("location")}
+                                    value={values.location}
+                                    onChange={(e) => set("location", e.target.value as ItemLocation | "")}
+                                >
+                                    <option value="" disabled>
+                                        Selecciona un lugar
+                                    </option>
+                                    {ITEM_LOCATIONS.map((place) => (
+                                        <option key={place} value={place}>
+                                            {place}
+                                        </option>
+                                    ))}
+                                </select>
+                            </Field>
+
+                            <Field
+                                name="locationDetail"
+                                label="Descripción del lugar"
+                                optional
+                                error={shown("locationDetail")}
+                            >
+                                <input
+                                    {...inputProps("locationDetail")}
+                                    type="text"
+                                    value={values.locationDetail}
+                                    maxLength={LIMITS.locationDetailMax}
+                                    onChange={(e) => set("locationDetail", e.target.value)}
+                                    placeholder="Ej. salón 204, mesa junto a la ventana"
+                                />
+                            </Field>
+                        </div>
+
+                        <Field name="date" label={typeOption.dateLabel} error={shown("date")}>
+                            <input
+                                {...inputProps("date")}
+                                type="date"
+                                value={values.date}
+                                max={today}
+                                onChange={(e) => set("date", e.target.value)}
+                            />
+                        </Field>
+
+                        {/* Privacy checkbox: the button stays disabled until it is checked */}
+                        <div>
+                            <label className="flex items-start gap-3 text-sm text-usco-ink">
+                                <input
+                                    id="report-accepted"
+                                    name="accepted"
+                                    type="checkbox"
+                                    checked={values.accepted}
+                                    onChange={(e) => set("accepted", e.target.checked)}
+                                    onBlur={() => touch("accepted")}
+                                    aria-invalid={shown("accepted") ? true : undefined}
+                                    aria-describedby={shown("accepted") ? "report-accepted-error" : undefined}
+                                    className="mt-0.5 h-4 w-4 shrink-0 accent-usco-wine"
+                                />
+                                <span>
+                                    Entiendo que no debo publicar datos personales ni información sensible en
+                                    este reporte (teléfonos, números de documento, direcciones).
+                                </span>
+                            </label>
+                            <p className="mt-1.5 pl-7 text-xs text-usco-muted">
+                                Tu contacto no se publica: solo lo ve quien abre tu reporte y pide contactarte
+                                de forma privada.
+                            </p>
+                            {shown("accepted") && (
+                                <p id="report-accepted-error" className="mt-1 pl-7 text-xs font-medium text-usco-wine">
+                                    {errors.accepted}
+                                </p>
+                            )}
+                        </div>
+
+                        {status === "error" && (
+                            <p
+                                role="alert"
+                                className="rounded-xl bg-usco-wine/10 px-4 py-3 text-sm font-medium text-usco-wine"
+                            >
+                                {submitError ?? "No pudimos publicar tu reporte. Revisa tu conexión e intenta de nuevo."}
+                            </p>
+                        )}
+
+                        <div>
+                            <div className="flex flex-wrap justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleClose}
+                                    disabled={status === "submitting"}
+                                    className="rounded-full border border-usco-line px-5 py-2.5 font-bold text-usco-ink transition hover:bg-usco-cream disabled:opacity-60"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={!isValid || status === "submitting"}
+                                    className="rounded-full bg-usco-wine px-6 py-2.5 font-bold text-white transition hover:bg-usco-wine-dark disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    {status === "submitting" ? "Publicando…" : "Publicar reporte"}
+                                </button>
+                            </div>
+                            {!isValid && (
+                                <p className="mt-2 text-right text-xs text-usco-muted">
+                                    Completa los campos obligatorios para publicar.
+                                </p>
+                            )}
+                        </div>
+                    </form>
                 )}
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                <Field name="location" label="Lugar" error={shown("location")}>
-                    <select
-                    {...inputProps("location")}
-                    value={values.location}
-                    onChange={(e) => set("location", e.target.value as ItemLocation | "")}
-                    >
-                    <option value="" disabled>
-                        Selecciona un lugar
-                    </option>
-                    {ITEM_LOCATIONS.map((place) => (
-                        <option key={place} value={place}>
-                        {place}
-                        </option>
-                    ))}
-                    </select>
-                </Field>
-
-                <Field
-                    name="locationDetail"
-                    label="Descripción del lugar"
-                    optional
-                    error={shown("locationDetail")}
-                >
-                    <input
-                    {...inputProps("locationDetail")}
-                    type="text"
-                    value={values.locationDetail}
-                    maxLength={LIMITS.locationDetailMax}
-                    onChange={(e) => set("locationDetail", e.target.value)}
-                    placeholder="Ej. salón 204, mesa junto a la ventana"
-                    />
-                </Field>
-                </div>
-
-                <Field name="date" label={typeOption.dateLabel} error={shown("date")}>
-                <input
-                    {...inputProps("date")}
-                    type="date"
-                    value={values.date}
-                    max={today}
-                    onChange={(e) => set("date", e.target.value)}
-                />
-                </Field>
-
-                {/* Privacy checkbox: the button stays disabled until it is checked */}
-                <div>
-                <label className="flex items-start gap-3 text-sm text-usco-ink">
-                    <input
-                    id="report-accepted"
-                    name="accepted"
-                    type="checkbox"
-                    checked={values.accepted}
-                    onChange={(e) => set("accepted", e.target.checked)}
-                    onBlur={() => touch("accepted")}
-                    aria-invalid={shown("accepted") ? true : undefined}
-                    aria-describedby={shown("accepted") ? "report-accepted-error" : undefined}
-                    className="mt-0.5 h-4 w-4 shrink-0 accent-usco-wine"
-                    />
-                    <span>
-                    Entiendo que no debo publicar datos personales ni información sensible en este
-                    reporte (teléfonos, números de documento, direcciones).
-                    </span>
-                </label>
-                <p className="mt-1.5 pl-7 text-xs text-usco-muted">
-                    Tu contacto no se publica: solo lo ve quien abre tu reporte y pide contactarte de
-                    forma privada.
-                </p>
-                {shown("accepted") && (
-                    <p id="report-accepted-error" className="mt-1 pl-7 text-xs font-medium text-usco-wine">
-                    {errors.accepted}
-                    </p>
-                )}
-                </div>
-
-                {status === "error" && (
-                <p role="alert" className="rounded-xl bg-usco-wine/10 px-4 py-3 text-sm font-medium text-usco-wine">
-                    No pudimos publicar tu reporte. Revisa tu conexión e intenta de nuevo.
-                </p>
-                )}
-
-                <div>
-                <div className="flex flex-wrap justify-end gap-3">
-                    <button
-                    type="button"
-                    onClick={handleClose}
-                    disabled={status === "submitting"}
-                    className="rounded-full border border-usco-line px-5 py-2.5 font-bold text-usco-ink transition hover:bg-usco-cream disabled:opacity-60"
-                    >
-                    Cancelar
-                    </button>
-                    <button
-                    type="submit"
-                    disabled={!isValid || status === "submitting"}
-                    className="rounded-full bg-usco-wine px-6 py-2.5 font-bold text-white transition hover:bg-usco-wine-dark disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                    {status === "submitting" ? "Publicando…" : "Publicar reporte"}
-                    </button>
-                </div>
-                {!isValid && (
-                    <p className="mt-2 text-right text-xs text-usco-muted">
-                    Completa los campos obligatorios para publicar.
-                    </p>
-                )}
-                </div>
-            </form>
-            )}
-        </div>
+            </div>
         </Modal>
     );
 }

@@ -4,7 +4,8 @@ import type { Item } from "@/types/item";
  * Admin panel contract types.
  *
  * The frontend defines these shapes; the backend adapts its responses to them.
- * docs/admin-api-contract.md documents the HTTP contract that mirrors this file.
+ * README.md ("Módulo de administración") documents the HTTP contract that mirrors this file.
+ * Every route below is served under the "/api" prefix (added by lib/backend/config.ts).
  */
 
 /** Internal sections of the admin panel. URL: /admin (summary) and /admin?section=reports. */
@@ -12,8 +13,8 @@ export type AdminSection = "summary" | "reports";
 
 /**
  * Where the admin data comes from.
- * - "mock": simulated data inside the Next server (the admin endpoints do not exist yet).
- * - "http": the backend endpoints of docs/admin-api-contract.md.
+ * - "mock": simulated data inside the Next server (MOCK_BACKEND=true, development only).
+ * - "http": the backend /api/admin/* and /api/health endpoints.
  */
 export type AdminDataSourceMode = "mock" | "http";
 
@@ -55,7 +56,7 @@ export type FilterOption = {
     label: string;
 };
 
-/** Selectable places and categories. Provided by the backend (GET /admin/filters). */
+/** Selectable places and categories. Provided by the backend (GET /api/admin/filters). */
 export type AdminFilterOptions = {
     locations: FilterOption[];
     categories: FilterOption[];
@@ -81,7 +82,8 @@ export type HealthStatus = {
 // ---------- Dashboard ----------
 
 /**
- * GLOBAL totals for the four KPI cards (GET /admin/dashboard/global-metrics).
+ * GLOBAL totals for the four KPI cards (GET /api/admin/dashboard/global-metrics).
+ * Per the contract they include logically deleted reports.
  * They never depend on period, location or category.
  */
 export type AdminGlobalMetrics = {
@@ -106,7 +108,7 @@ export type RankedCount = {
     count: number;
 };
 
-/** Filtered analytics (GET /admin/dashboard/analytics). */
+/** Filtered analytics (GET /api/admin/dashboard/analytics). */
 export type AdminAnalytics = {
     scope: AdminScopeMetrics;
     /** Up to 3 categories, count desc, over ALL reports of the scope. */

@@ -20,7 +20,7 @@ import {
 } from "@/lib/admin-filters";
 import { formatCount, pluralize } from "@/lib/admin-metrics";
 import { AdminFiltersBar } from "./AdminFiltersBar";
-import { EmptyNotice, ErrorNotice } from "./AdminFeedback";
+import { EmptyNotice, ErrorNotice, isSessionExpired } from "./AdminFeedback";
 import { AdminReportModal } from "./AdminReportModal";
 import { AdminReportRow } from "./AdminReportRow";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -269,6 +269,7 @@ export function AdminReportsSection({
                                 title="No se pudieron cargar los reportes."
                                 message="Revisa tu conexión e inténtalo de nuevo."
                                 onRetry={retry}
+                                sessionExpired={isSessionExpired(result)}
                             />
                         </div>
                     ) : null}
