@@ -60,3 +60,6 @@ export interface CreateItemInput {
     eventDate: string; // YYYY-MM-DD: when it was lost or found
     image: File | null; // optional; the backend stores it and returns the public URL
 }
+
+// What the server action receives: the form values without the photo (S3 is pending)
+export type CreateItemPayload = Omit<CreateItemInput, "image">;

@@ -7,7 +7,7 @@ import { DEFAULT_FILTERS, filterItems, type ItemFilters } from "@/lib/filter-ite
 import { CATEGORY_CONFIG } from "@/lib/item-categories";
 import { ITEM_LOCATIONS, type ItemLocation } from "@/lib/item-locations";
 import { itemsMock } from "@/mocks/items.mock";
-import type { CategorySummary, Item, ItemCategory, MyItems } from "@/types/item";
+import type { CategorySummary, CreateItemPayload, Item, ItemCategory, MyItems } from "@/types/item";
 
 // Contract: GET /api/items, GET /api/items/categories and GET /api/items/mine.
 // The /api prefix is added by lib/backend/config.ts. SERVER-SIDE ONLY: the token never reaches the browser.
@@ -16,6 +16,8 @@ import type { CategorySummary, Item, ItemCategory, MyItems } from "@/types/item"
 export type ItemsApiErrorKind =
     | "Unauthorized" // 401, or no usable session token
     | "Forbidden" // 403
+    | "Validation" // 400 / 422
+    | "Conflict" // 409 (e.g. five active reports already)
     | "Unavailable" // no connection, timeout, 404, 5xx
     | "InvalidResponse"; // 2xx with a body that does not follow the contract
 
@@ -190,4 +192,49 @@ export async function getMyItems(): Promise<MyItems> {
         active: parseItemList(active, "GET /items/mine (active)"),
         history: parseItemList(history, "GET /items/mine (history)"),
     };
+}
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// POST /items (multipart/form-data, text fields only: no image while S3 is pending).
+// The author and its role (loser / finder) come from the token, not from the body.
+export async function createItem(input: CreateItemPayload, accessToken: string): Promise<void> {
+    if (isMockBackendEnabled()) {
+        await delay(800); // dummy: simulates the network, nothing is persisted
+        return;
+    }
+
+    const formData = new FormData();
+    formData.set("type", input.type);
+    formData.set("title", input.title);
+    formData.set("description", input.description);
+    formData.set("category", input.category);
+    formData.set("location", input.location);
+    formData.set("eventDate", input.eventDate);
+    if (input.locationDetail) formData.set("locationDetail", input.locationDetail);
+
+    let response: Response;
+    try {
+        response = await backendFetch("/items", { method: "POST", formData, accessToken });
+    } catch (error) {
+        if (error instanceof BackendNetworkError) throw new ItemsApiError("Unavailable", error.message);
+        throw error;
+    }
+
+    if (response.status === 401) throw new ItemsApiError("Unauthorized", "El backend respondió 401");
+    if (response.status === 403) throw new ItemsApiError("Forbidden", "El backend respondió 403");
+    if (response.status === 409) {
+        const body = (await response.json().catch(() => null)) as { message?: unknown } | null;
+        throw new ItemsApiError(
+            "Conflict",
+            typeof body?.message === "string" ? body.message : "Ya tienes cinco reportes activos.",
+        );
+    }
+    if (response.status === 400 || response.status === 422) {
+        const body = (await response.json().catch(() => null)) as { message?: unknown } | null;
+        // The backend text may be technical: it is only logged, the user sees a fixed message
+        console.warn(`[items] POST /items rechazado (${response.status}):`, body?.message);
+        throw new ItemsApiError("Validation", "El servidor no aceptó los datos del reporte.");
+    }
+    if (!response.ok) throw new ItemsApiError("Unavailable", `El backend respondió ${response.status}`);
 }
