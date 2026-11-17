@@ -1,17 +1,15 @@
 import "server-only";
 
 import { BackendNetworkError, backendFetch } from "@/lib/backend/client";
-import { isMockBackendEnabled } from "@/lib/backend/config";
 import { getBackendAccessToken } from "@/lib/backend/session";
 import { DEFAULT_FILTERS, filterItems, type ItemFilters } from "@/lib/filter-items";
 import { CATEGORY_CONFIG } from "@/lib/item-categories";
 import { ITEM_LOCATIONS, type ItemLocation } from "@/lib/item-locations";
-import { itemsMock } from "@/mocks/items.mock";
 import type { CategorySummary, CreateItemPayload, Item, ItemCategory, MyItems } from "@/types/item";
 
-// Contract: GET /api/items, GET /api/items/categories and GET /api/items/mine.
+// Contract: GET /api/items, GET /api/items/categories, GET /api/items/mine, POST /api/items,
+// POST /api/items/:id/verification and PATCH /api/items/:id/resolution.
 // The /api prefix is added by lib/backend/config.ts. SERVER-SIDE ONLY: the token never reaches the browser.
-// Write operations (create, verification, resolution) live in services/items.mutations.ts for now.
 
 export type ItemsApiErrorKind =
     | "Unauthorized" // 401, or no usable session token
@@ -141,31 +139,17 @@ async function requestJson(path: string, accessToken: string | null): Promise<un
     return data;
 }
 
-// MOCK DATA (only with MOCK_BACKEND=true). The backend returns only open reports.
-const visibleItems = () => itemsMock.filter((item) => !item.closed);
-
 // How many open reports each category has (both types). The backend always returns the six categories.
 export async function getCategorySummaries(): Promise<CategorySummary[]> {
-    if (isMockBackendEnabled()) {
-        const items = visibleItems();
-        return CATEGORY_CONFIG.map(({ category }) => ({
-            category,
-            count: items.filter((item) => item.category === category).length,
-        }));
-    }
-
     const data = await requestJson("/items/categories", await getBackendAccessToken());
     const summaries = parseCategorySummaries(data);
     if (!summaries) throw new ItemsApiError("InvalidResponse", "GET /items/categories: forma inesperada");
     return summaries;
 }
 
-// Open reports matching the filters. GET /items has no pagination, so it is fetched whole and the
-// same filterItems() the UI already uses is applied here: identical behavior to the mocks, and no need
-// to guess the backend's query-parameter names. If the volume grows, send the filters to the backend instead.
+// Open reports matching the filters. GET /items has no pagination, so it is fetched whole and
+// filterItems() is applied here. If the volume grows, send the filters to the backend instead.
 export async function getItems(filters: ItemFilters = DEFAULT_FILTERS): Promise<Item[]> {
-    if (isMockBackendEnabled()) return filterItems(visibleItems(), filters);
-
     const data = await requestJson("/items", await getBackendAccessToken());
     return filterItems(parseItemList(data, "GET /items"), filters);
 }
@@ -174,13 +158,6 @@ export async function getItems(filters: ItemFilters = DEFAULT_FILTERS): Promise<
 // "history" is NOT only closed reports: after a failed verification a report can be in both lists.
 // Do not infer "closed" from membership in history.
 export async function getMyItems(): Promise<MyItems> {
-    if (isMockBackendEnabled()) {
-        const mine = itemsMock
-            .filter((item) => item.isOwner)
-            .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
-        return { active: mine.filter((i) => !i.closed), history: mine.filter((i) => i.closed) };
-    }
-
     const accessToken = await getBackendAccessToken();
     if (!accessToken) throw new ItemsApiError("Unauthorized", "No hay token de sesión vigente");
 
@@ -195,16 +172,9 @@ export async function getMyItems(): Promise<MyItems> {
     };
 }
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 // POST /items (multipart/form-data, text fields only: no image while S3 is pending).
 // The author and its role (loser / finder) come from the token, not from the body.
 export async function createItem(input: CreateItemPayload, accessToken: string): Promise<void> {
-    if (isMockBackendEnabled()) {
-        await delay(800); // dummy: simulates the network, nothing is persisted
-        return;
-    }
-
     const formData = new FormData();
     formData.set("type", input.type);
     formData.set("title", input.title);
@@ -269,19 +239,11 @@ async function sendCommand(
 // POST /items/:id/verification (no body, 204). The viewer takes the role opposite to the author and
 // the report goes active -> in_verification. Idempotent for the same person; 409 for another one.
 export async function startVerification(itemId: string, accessToken: string): Promise<void> {
-    if (isMockBackendEnabled()) {
-        await delay(400);
-        return;
-    }
     await sendCommand("POST", `/items/${encodeURIComponent(itemId)}/verification`, accessToken);
 }
 
 // PATCH /items/:id/resolution { resolved } (204). Only the owner, which the backend computes.
 // resolved = true closes the report; false records the failed attempt and it goes back to active.
 export async function resolveReport(itemId: string, resolved: boolean, accessToken: string): Promise<void> {
-    if (isMockBackendEnabled()) {
-        await delay(600);
-        return;
-    }
     await sendCommand("PATCH", `/items/${encodeURIComponent(itemId)}/resolution`, accessToken, { resolved });
 }

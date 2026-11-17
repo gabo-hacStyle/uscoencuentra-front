@@ -41,7 +41,7 @@ export function parseFilters(raw: RawParams): ItemFilters {
 }
 
 // Builds the query string, omitting default values to keep URLs clean.
-// The backend contract will use these same parameter names: GET /api/items?type=&category=&q=&sort=
+// In-memory filtering: GET /api/items has no filters or pagination, so it is applied after fetching
 export function toSearchParams(filters: ItemFilters): URLSearchParams {
     const params = new URLSearchParams();
     if (filters.type !== "all") params.set("type", filters.type);
