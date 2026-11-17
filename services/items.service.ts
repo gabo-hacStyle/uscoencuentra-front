@@ -34,6 +34,27 @@ const CATEGORIES = new Set<string>(CATEGORY_CONFIG.map(({ category }) => categor
 const LOCATIONS = new Set<string>(ITEM_LOCATIONS);
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}/;
 
+// DEV ONLY: shows local sample photos while the backend sends imageUrl = null (S3 pending).
+// Never active in production. The photos do NOT match the real object.
+const DEMO_IMAGES = process.env.NODE_ENV !== "production" && process.env.DEMO_ITEM_IMAGES === "true";
+const DEMO_IMAGES_BY_CATEGORY: Record<ItemCategory, string[]> = {
+    Tecnología: ["/mocks/calculator.jpg", "/mocks/airpods.jpg", "/mocks/phone.jpg", "/mocks/laptop.jpg", "/mocks/charger.jpg"],
+    Documentos: ["/mocks/studentID.jpg", "/mocks/wallet.jpg", "/mocks/notebook.jpg"],
+    Accesorios: ["/mocks/backpack.jpg", "/mocks/glasses.jpg", "/mocks/umbrella.jpg", "/mocks/bottle.jpg", "/mocks/watch.jpg"],
+    Llaves: ["/mocks/keychain.jpg", "/mocks/keys-2.jpg"],
+    Ropa: ["/mocks/jacket.jpg", "/mocks/hoodie.jpg", "/mocks/cap.jpg"],
+    Otros: ["/mocks/book.jpg", "/mocks/pencil-case.jpg", "/mocks/glasses.jpg"],
+};
+
+// Stable pick: the same report id always gets the same photo
+function demoImageFor(category: ItemCategory, id: string): string | null {
+    const options = DEMO_IMAGES_BY_CATEGORY[category];
+    if (!options.length) return null;
+    let hash = 0;
+    for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+    return options[hash % options.length];
+}
+
 /**
  * Only place that translates ONE backend item into the frontend `Item`.
  * Returns the item, or a string with the reason it was rejected (enum values are safe to log;
@@ -78,7 +99,7 @@ function parseItem(data: unknown): Item | string {
         category: d.category as ItemCategory, // validated against CATEGORY_CONFIG above
         location: d.location as ItemLocation, // validated against ITEM_LOCATIONS above
         locationDetail,
-        imageUrl,
+        imageUrl: imageUrl ?? (DEMO_IMAGES ? demoImageFor(d.category as ItemCategory, String(d.id)) : null),
         eventDate: d.eventDate.slice(0, 10), // YYYY-MM-DD
         publishedAt: d.publishedAt,
         status: d.status,
