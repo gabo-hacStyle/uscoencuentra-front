@@ -9,7 +9,7 @@ export default async function MyReportsPage() {
     const session = await auth();
     if (!session?.user) redirect("/login");
 
-const { active, history } = await getMyItems(); // TODO(backend): GET /items/mine
+const { active, history } = await getMyItems();
 
 return (
     <div className="flex min-h-screen flex-col">
