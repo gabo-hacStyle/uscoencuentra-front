@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import BaseModal from "@/components/ui/BaseModal";
-import { resolveReport } from "@/services/items.service";
+import { resolveReport } from "@/services/items.mutations";
 import type { Item, ItemType } from "@/types/item";
 
 // The modal is only shown to the publisher, so the question depends on the report type:

@@ -7,7 +7,7 @@ import { IconClose } from "@/components/ui/icons";
 import { contactPublisher } from "@/lib/contact-links";
 import { formatPhone } from "@/lib/item-format";
 import { ITEM_TEXTS } from "@/lib/item-texts";
-import { startVerification } from "@/services/items.service";
+import { startVerification } from "@/services/items.mutations";
 import type { Item, PrivateContact } from "@/types/item";
 
 type ContactState =
