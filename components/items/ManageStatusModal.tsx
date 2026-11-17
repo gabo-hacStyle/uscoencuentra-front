@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { resolveReportAction } from "@/actions/items";
 import BaseModal from "@/components/ui/BaseModal";
-import { resolveReport } from "@/services/items.mutations";
 import type { Item, ItemType } from "@/types/item";
 
 // The modal is only shown to the publisher, so the question depends on the report type:
@@ -24,13 +24,17 @@ type Step = "question" | "closed";
 export default function ManageStatusModal({ item, onClose, onResolved }: ManageStatusModalProps) {
     const [step, setStep] = useState<Step>("question");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [hasError, setHasError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     async function answer(resolved: boolean) {
         setIsSubmitting(true);
-        setHasError(false);
+        setErrorMessage(null);
         try {
-            await resolveReport(item.id, resolved);
+            const result = await resolveReportAction(item.id, resolved);
+            if (!result.ok) {
+                setErrorMessage(result.error);
+                return;
+            }
             onResolved(item, resolved);
             if (resolved) {
                 setStep("closed"); // confirmation message before closing
@@ -38,7 +42,7 @@ export default function ManageStatusModal({ item, onClose, onResolved }: ManageS
                 onClose();
             }
         } catch {
-            setHasError(true);
+            setErrorMessage("No pudimos actualizar el reporte. Inténtalo de nuevo.");
         } finally {
             setIsSubmitting(false);
         }
@@ -78,9 +82,9 @@ export default function ManageStatusModal({ item, onClose, onResolved }: ManageS
                             Si confirmas, el reporte pasará al historial y dejará de aparecer entre los activos.
                         </p>
 
-                        {hasError && (
+                        {errorMessage && (
                             <p role="alert" className="mt-4 text-sm font-bold text-usco-wine">
-                                No pudimos actualizar el reporte. Inténtalo de nuevo.
+                                {errorMessage}
                             </p>
                         )}
 

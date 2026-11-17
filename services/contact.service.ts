@@ -1,13 +1,14 @@
 import "server-only";
 
+import { BackendNetworkError, backendFetch } from "@/lib/backend/client";
+import { isMockBackendEnabled } from "@/lib/backend/config";
 import { isE164 } from "@/lib/phone";
 import { contactsMock, itemsMock } from "@/mocks/items.mock";
-import { API_URL, isMockBackendEnabled } from "@/services/auth.service";
 import { getMockAuthorWhatsApp } from "@/services/profile.service";
 import type { PrivateContact } from "@/types/item";
 
 /**
- * GET /items/:id/contact — "Contacto privado del publicador" (contract defined by the team).
+ * GET /items/:id/contact (the /api prefix is added by lib/backend/config.ts).
  * SERVER-SIDE ONLY: reached through actions/contact.ts, so the token, the mock contacts and the
  * publishers' numbers never ship in the browser bundle.
  *
@@ -53,14 +54,10 @@ function parseContact(data: unknown): PrivateContact | null {
 async function requestContact(itemId: string, accessToken: string): Promise<PrivateContact> {
     let response: Response;
     try {
-        response = await fetch(`${API_URL}${contactPath(itemId)}`, {
-            method: "GET",
-            headers: { Accept: "application/json", Authorization: `Bearer ${accessToken}` },
-            cache: "no-store",
-            signal: AbortSignal.timeout(10_000),
-        });
-    } catch {
-        throw new ContactApiError("Unavailable", `No se pudo conectar con ${API_URL}${contactPath(itemId)}`);
+        response = await backendFetch(contactPath(itemId), { accessToken });
+    } catch (error) {
+        if (error instanceof BackendNetworkError) throw new ContactApiError("Unavailable", error.message);
+        throw error;
     }
 
     if (response.status === 401) throw new ContactApiError("Unauthorized", "El backend respondió 401");

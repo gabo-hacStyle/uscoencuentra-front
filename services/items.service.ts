@@ -16,9 +16,10 @@ import type { CategorySummary, CreateItemPayload, Item, ItemCategory, MyItems } 
 export type ItemsApiErrorKind =
     | "Unauthorized" // 401, or no usable session token
     | "Forbidden" // 403
+    | "NotFound" // 404
     | "Validation" // 400 / 422
-    | "Conflict" // 409 (e.g. five active reports already)
-    | "Unavailable" // no connection, timeout, 404, 5xx
+    | "Conflict" // 409 (e.g. five active reports already, or report already linked)
+    | "Unavailable" // no connection, timeout, 5xx
     | "InvalidResponse"; // 2xx with a body that does not follow the contract
 
 export class ItemsApiError extends Error {
@@ -237,4 +238,50 @@ export async function createItem(input: CreateItemPayload, accessToken: string):
         throw new ItemsApiError("Validation", "El servidor no aceptó los datos del reporte.");
     }
     if (!response.ok) throw new ItemsApiError("Unavailable", `El backend respondió ${response.status}`);
+}
+
+/** Authenticated command without a response body (204). Maps HTTP failures to ItemsApiError. */
+async function sendCommand(
+    method: "POST" | "PATCH",
+    path: string,
+    accessToken: string,
+    json?: unknown,
+): Promise<void> {
+    let response: Response;
+    try {
+        response = await backendFetch(path, { method, json, accessToken });
+    } catch (error) {
+        if (error instanceof BackendNetworkError) throw new ItemsApiError("Unavailable", error.message);
+        throw error;
+    }
+
+    if (response.status === 401) throw new ItemsApiError("Unauthorized", "El backend respondió 401");
+    if (response.status === 403) throw new ItemsApiError("Forbidden", "El backend respondió 403");
+    if (response.status === 404) throw new ItemsApiError("NotFound", "El backend respondió 404");
+    if (response.status === 409) {
+        const body = (await response.json().catch(() => null)) as { message?: unknown } | null;
+        throw new ItemsApiError("Conflict", typeof body?.message === "string" ? body.message : "Conflicto con el estado del reporte.");
+    }
+    if (response.status === 400 || response.status === 422) throw new ItemsApiError("Validation", `El backend respondió ${response.status}`);
+    if (!response.ok) throw new ItemsApiError("Unavailable", `El backend respondió ${response.status}`);
+}
+
+// POST /items/:id/verification (no body, 204). The viewer takes the role opposite to the author and
+// the report goes active -> in_verification. Idempotent for the same person; 409 for another one.
+export async function startVerification(itemId: string, accessToken: string): Promise<void> {
+    if (isMockBackendEnabled()) {
+        await delay(400);
+        return;
+    }
+    await sendCommand("POST", `/items/${encodeURIComponent(itemId)}/verification`, accessToken);
+}
+
+// PATCH /items/:id/resolution { resolved } (204). Only the owner, which the backend computes.
+// resolved = true closes the report; false records the failed attempt and it goes back to active.
+export async function resolveReport(itemId: string, resolved: boolean, accessToken: string): Promise<void> {
+    if (isMockBackendEnabled()) {
+        await delay(600);
+        return;
+    }
+    await sendCommand("PATCH", `/items/${encodeURIComponent(itemId)}/resolution`, accessToken, { resolved });
 }

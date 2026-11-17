@@ -3,7 +3,7 @@
 import { auth } from "@/auth";
 import { getBackendAccessToken } from "@/lib/backend/session";
 import { validateReport } from "@/lib/report-validation";
-import { ItemsApiError, createItem } from "@/services/items.service";
+import { ItemsApiError, createItem, resolveReport, startVerification } from "@/services/items.service";
 import type { CreateItemPayload, ItemCategory } from "@/types/item";
 import type { ItemLocation } from "@/lib/item-locations";
 
@@ -81,5 +81,59 @@ export async function createItemAction(rawInput: unknown): Promise<CreateItemRes
         }
         console.error("[items] Error al crear el reporte:", error);
         return { ok: false, error: GENERIC_ERROR };
+    }
+}
+
+const ITEM_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+const SESSION_EXPIRED = "Tu sesión con el servidor expiró. Cierra sesión e ingresa de nuevo.";
+
+export type StartVerificationResult =
+    | { ok: true }
+    | { ok: false; reason: "linked" | "error"; error: string };
+
+/** POST /items/:id/verification. A 409 means the report is already linked to another person. */
+export async function startVerificationAction(itemId: unknown): Promise<StartVerificationResult> {
+    const session = await auth();
+    const accessToken = await getBackendAccessToken();
+    if (!session?.user || !accessToken) return { ok: false, reason: "error", error: SESSION_EXPIRED };
+    if (typeof itemId !== "string" || !ITEM_ID_PATTERN.test(itemId)) {
+        return { ok: false, reason: "error", error: "Objeto no encontrado." };
+    }
+
+    try {
+        await startVerification(itemId, accessToken);
+        return { ok: true };
+    } catch (error) {
+        if (error instanceof ItemsApiError && error.kind === "Conflict") {
+            return { ok: false, reason: "linked", error: error.message };
+        }
+        console.error("[items] Error al iniciar la verificación:", error);
+        return { ok: false, reason: "error", error: "No pudimos registrar la verificación." };
+    }
+}
+
+export type ResolveReportResult = { ok: true } | { ok: false; error: string };
+
+/** PATCH /items/:id/resolution. Only the owner can answer; the backend decides who that is. */
+export async function resolveReportAction(itemId: unknown, resolved: unknown): Promise<ResolveReportResult> {
+    const session = await auth();
+    const accessToken = await getBackendAccessToken();
+    if (!session?.user || !accessToken) return { ok: false, error: SESSION_EXPIRED };
+    if (typeof itemId !== "string" || !ITEM_ID_PATTERN.test(itemId) || typeof resolved !== "boolean") {
+        return { ok: false, error: "No pudimos actualizar el reporte. Inténtalo de nuevo." };
+    }
+
+    try {
+        await resolveReport(itemId, resolved, accessToken);
+        return { ok: true };
+    } catch (error) {
+        if (error instanceof ItemsApiError) {
+            if (error.kind === "Unauthorized") return { ok: false, error: SESSION_EXPIRED };
+            if (error.kind === "Forbidden") return { ok: false, error: "Solo quien debe confirmar el resultado puede responder." };
+            if (error.kind === "NotFound") return { ok: false, error: "Este reporte ya no está disponible." };
+            if (error.kind === "Conflict") return { ok: false, error: "Este reporte ya está cerrado." };
+        }
+        console.error("[items] Error al resolver el reporte:", error);
+        return { ok: false, error: "No pudimos actualizar el reporte. Inténtalo de nuevo." };
     }
 }
