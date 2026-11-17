@@ -1,78 +1,193 @@
-import { itemsMock } from "@/mocks/items.mock";
-import { CATEGORY_CONFIG } from "@/lib/item-categories";
+import "server-only";
+
+import { BackendNetworkError, backendFetch } from "@/lib/backend/client";
+import { isMockBackendEnabled } from "@/lib/backend/config";
+import { getBackendAccessToken } from "@/lib/backend/session";
 import { DEFAULT_FILTERS, filterItems, type ItemFilters } from "@/lib/filter-items";
-import type { CategorySummary, CreateItemInput, Item, MyItems } from "@/types/item";
+import { CATEGORY_CONFIG } from "@/lib/item-categories";
+import { ITEM_LOCATIONS, type ItemLocation } from "@/lib/item-locations";
+import { itemsMock } from "@/mocks/items.mock";
+import type { CategorySummary, Item, ItemCategory, MyItems } from "@/types/item";
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+// Contract: GET /api/items, GET /api/items/categories and GET /api/items/mine.
+// The /api prefix is added by lib/backend/config.ts. SERVER-SIDE ONLY: the token never reaches the browser.
+// Write operations (create, verification, resolution) live in services/items.mutations.ts for now.
 
-// The backend returns only items that are still in play (not delivered)
-const visibleItems = () => itemsMock.filter((item) => !item.closed);
+export type ItemsApiErrorKind =
+    | "Unauthorized" // 401, or no usable session token
+    | "Forbidden" // 403
+    | "Unavailable" // no connection, timeout, 404, 5xx
+    | "InvalidResponse"; // 2xx with a body that does not follow the contract
 
-// The publisher's private contact (GET /items/:id/contact) is NOT here: client components import this
-// file, so the contacts would ship to the browser. It lives in services/contact.service.ts
-// (server-only), reached through actions/contact.ts.
-
-// Returns how many publications each category has (only items still in play).
-// TODO: replace with fetch("/api/items/categories") once the backend is ready.
-export async function getCategorySummaries(): Promise<CategorySummary[]> {
-    const items = visibleItems();
-    return CATEGORY_CONFIG.map(({ category }) => ({
-        category,
-        count: items.filter((item) => item.category === category).length,
-    }));
+export class ItemsApiError extends Error {
+    constructor(
+        public readonly kind: ItemsApiErrorKind,
+        message: string,
+    ) {
+        super(message);
+        this.name = "ItemsApiError";
+    }
 }
 
-// Returns the published items matching the filters.
-// TODO: replace with fetch(`/api/items?${toSearchParams(filters)}`) once the backend is ready.
-export async function getItems(filters: ItemFilters = DEFAULT_FILTERS): Promise<Item[]> {
-    return filterItems(visibleItems(), filters);
-}
+const CATEGORIES = new Set<string>(CATEGORY_CONFIG.map(({ category }) => category));
+const LOCATIONS = new Set<string>(ITEM_LOCATIONS);
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}/;
 
-// All the reports of the signed-in user, newest first, split by the backend into
-// open reports and history.
-// TODO: replace with fetch("/api/items/mine") sending the session access token.
-export async function getMyItems(): Promise<MyItems> {
-    const mine = itemsMock
-        .filter((item) => item.isOwner)
-        .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
-    return { active: mine.filter((i) => !i.closed), history: mine.filter((i) => i.closed) };
-}
+/**
+ * Only place that translates ONE backend item into the frontend `Item`.
+ * Returns the item, or a string with the reason it was rejected (enum values are safe to log;
+ * titles, descriptions and other free text never are).
+ * If the backend names a field differently, change it HERE.
+ */
+function parseItem(data: unknown): Item | string {
+    if (typeof data !== "object" || data === null) return "not an object";
+    const d = data as Record<string, unknown>;
 
-// resolved = true: report goes to the history. resolved = false: in_verification -> active.
-// TODO(backend): PATCH /api/items/${itemId}/resolution with { resolved }
-export async function resolveReport(itemId: string, resolved: boolean): Promise<void> {
-    void itemId; // dummy: unused until the real request exists
-    void resolved;
-    await delay(600);
-}
+    if (typeof d.id !== "string" && typeof d.id !== "number") return 'missing "id"';
+    if (d.type !== "lost" && d.type !== "found") return `unexpected type "${String(d.type)}"`;
+    if (typeof d.title !== "string") return 'missing "title"';
+    if (typeof d.description !== "string") return 'missing "description"';
+    if (typeof d.category !== "string" || !CATEGORIES.has(d.category)) {
+        return `unexpected category "${String(d.category)}"`;
+    }
+    if (typeof d.location !== "string" || !LOCATIONS.has(d.location)) {
+        return `unexpected location "${String(d.location)}"`;
+    }
+    if (d.status !== "active" && d.status !== "in_verification") {
+        return `unexpected status "${String(d.status)}"`;
+    }
+    if (typeof d.eventDate !== "string" || !ISO_DAY.test(d.eventDate)) return 'invalid "eventDate"';
+    if (typeof d.publishedAt !== "string" || Number.isNaN(Date.parse(d.publishedAt))) {
+        return 'invalid "publishedAt"';
+    }
 
-// Called when someone presses "Reclamar objeto" / "Devolver objeto" in the private contact modal.
-// TODO(backend): POST /api/items/${itemId}/verification; the backend sets the status to in_verification
-// (and puts it back to active after VERIFICATION_DAYS if nobody resolves it).
-export async function startVerification(itemId: string): Promise<void> {
-    void itemId; // dummy: unused until the real request exists
-    await delay(400);
-}
-
-// Publishes a new report. Dummy: simulates the network and returns the created item.
-// It is NOT persisted, so it will not appear in the lists until the backend exists.
-// TODO: replace with a POST /api/items (multipart/form-data) through a route handler
-// or server action that attaches the session access token.
-export async function createItem(input: CreateItemInput): Promise<Item> {
-    await delay(800); // simulates network delay
+    const locationDetail =
+        typeof d.locationDetail === "string" && d.locationDetail.trim() !== "" ? d.locationDetail.trim() : null;
+    // Same rule as ItemImage: only real URLs. The backend sends null for now (S3 pending).
+    const imageUrl =
+        typeof d.imageUrl === "string" && (d.imageUrl.startsWith("/") || /^https?:\/\//.test(d.imageUrl))
+            ? d.imageUrl
+            : null;
 
     return {
-        id: `dummy-${Date.now()}`,
-        type: input.type,
-        title: input.title,
-        description: input.description,
-        category: input.category,
-        location: input.location,
-        locationDetail: input.locationDetail,
-        imageUrl: null, // the real backend uploads the file and returns its URL
-        eventDate: input.eventDate,
-        publishedAt: new Date().toISOString(),
-        status: "active",
-        isOwner: true,
+        id: String(d.id),
+        type: d.type,
+        title: d.title,
+        description: d.description,
+        category: d.category as ItemCategory, // validated against CATEGORY_CONFIG above
+        location: d.location as ItemLocation, // validated against ITEM_LOCATIONS above
+        locationDetail,
+        imageUrl,
+        eventDate: d.eventDate.slice(0, 10), // YYYY-MM-DD
+        publishedAt: d.publishedAt,
+        status: d.status,
+        isOwner: d.isOwner === true, // computed by the backend; if it is missing, nobody is the owner
+    };
+}
+
+/** A broken item is skipped (and reported); if EVERY item is broken the contract does not match: fail loudly. */
+function parseItemList(data: unknown, label: string): Item[] {
+    if (!Array.isArray(data)) throw new ItemsApiError("InvalidResponse", `${label}: expected a JSON array`);
+
+    const items: Item[] = [];
+    const failures: string[] = [];
+    for (const entry of data) {
+        const parsed = parseItem(entry);
+        if (typeof parsed === "string") failures.push(parsed);
+        else items.push(parsed);
+    }
+
+    if (failures.length > 0) {
+        console.warn(`[items] ${label}: ${failures.length} de ${data.length} reportes descartados. Primer motivo: ${failures[0]}`);
+        if (items.length === 0) {
+            throw new ItemsApiError("InvalidResponse", `${label}: ningún reporte tiene la forma esperada`);
+        }
+    }
+    return items;
+}
+
+/** Counts come from the backend; order and icons stay in CATEGORY_CONFIG. A missing category counts 0. */
+function parseCategorySummaries(data: unknown): CategorySummary[] | null {
+    if (!Array.isArray(data)) return null;
+    const counts = new Map<string, number>();
+    for (const entry of data) {
+        if (typeof entry !== "object" || entry === null) return null;
+        const e = entry as Record<string, unknown>;
+        if (typeof e.category !== "string" || typeof e.count !== "number") return null;
+        counts.set(e.category, e.count);
+    }
+    return CATEGORY_CONFIG.map(({ category }) => ({ category, count: counts.get(category) ?? 0 }));
+}
+
+/** Authenticated GET. Maps HTTP failures to ItemsApiError; the caller interprets the JSON. */
+async function requestJson(path: string, accessToken: string | null): Promise<unknown> {
+    let response: Response;
+    try {
+        response = await backendFetch(path, { accessToken });
+    } catch (error) {
+        if (error instanceof BackendNetworkError) throw new ItemsApiError("Unavailable", error.message);
+        throw error;
+    }
+
+    if (response.status === 401) throw new ItemsApiError("Unauthorized", "El backend respondió 401");
+    if (response.status === 403) throw new ItemsApiError("Forbidden", "El backend respondió 403");
+    if (!response.ok) throw new ItemsApiError("Unavailable", `El backend respondió ${response.status}`);
+
+    const data: unknown = await response.json().catch(() => null);
+    if (data === null) throw new ItemsApiError("InvalidResponse", "Respuesta del backend sin JSON válido");
+    return data;
+}
+
+// MOCK DATA (only with MOCK_BACKEND=true). The backend returns only open reports.
+const visibleItems = () => itemsMock.filter((item) => !item.closed);
+
+// How many open reports each category has (both types). The backend always returns the six categories.
+export async function getCategorySummaries(): Promise<CategorySummary[]> {
+    if (isMockBackendEnabled()) {
+        const items = visibleItems();
+        return CATEGORY_CONFIG.map(({ category }) => ({
+            category,
+            count: items.filter((item) => item.category === category).length,
+        }));
+    }
+
+    const data = await requestJson("/items/categories", await getBackendAccessToken());
+    const summaries = parseCategorySummaries(data);
+    if (!summaries) throw new ItemsApiError("InvalidResponse", "GET /items/categories: forma inesperada");
+    return summaries;
+}
+
+// Open reports matching the filters. GET /items has no pagination, so it is fetched whole and the
+// same filterItems() the UI already uses is applied here: identical behavior to the mocks, and no need
+// to guess the backend's query-parameter names. If the volume grows, send the filters to the backend instead.
+export async function getItems(filters: ItemFilters = DEFAULT_FILTERS): Promise<Item[]> {
+    if (isMockBackendEnabled()) return filterItems(visibleItems(), filters);
+
+    const data = await requestJson("/items", await getBackendAccessToken());
+    return filterItems(parseItemList(data, "GET /items"), filters);
+}
+
+// Reports of the signed-in user, already split by the backend into { active, history }.
+// "history" is NOT only closed reports: after a failed verification a report can be in both lists.
+// Do not infer "closed" from membership in history.
+export async function getMyItems(): Promise<MyItems> {
+    if (isMockBackendEnabled()) {
+        const mine = itemsMock
+            .filter((item) => item.isOwner)
+            .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
+        return { active: mine.filter((i) => !i.closed), history: mine.filter((i) => i.closed) };
+    }
+
+    const accessToken = await getBackendAccessToken();
+    if (!accessToken) throw new ItemsApiError("Unauthorized", "No hay token de sesión vigente");
+
+    const data = await requestJson("/items/mine", accessToken);
+    if (typeof data !== "object" || data === null) {
+        throw new ItemsApiError("InvalidResponse", "GET /items/mine: forma inesperada");
+    }
+    const { active, history } = data as Record<string, unknown>;
+    return {
+        active: parseItemList(active, "GET /items/mine (active)"),
+        history: parseItemList(history, "GET /items/mine (history)"),
     };
 }

@@ -15,7 +15,7 @@ import {
     type ReportField,
     type ReportValues,
 } from "@/lib/report-validation";
-import { createItem } from "@/services/items.service";
+import { createItem } from "@/services/items.mutations";
 import type { ItemCategory, ItemType } from "@/types/item";
 
 const TYPE_OPTIONS: { value: ItemType; label: string; dateLabel: string }[] = [
